@@ -244,7 +244,7 @@ public interface Cursive {
     public static <T extends ByteBuffer> T bb(T b, Cursive... ops) {
       for (int i = 0, opsLength = ops.length; i < opsLength; i++) {
         Cursive op = ops[i];
-        b = op.<T>f(b);
+        b = op.f(b);
       }
       return b;
     }
@@ -278,29 +278,29 @@ public interface Cursive {
      * @param operations
      * @return
      */
-    public static ByteBuffer bb(String src, Cursive... operations) {
+    public static <T extends CharSequence> ByteBuffer bb(T src, Cursive... operations) {
 
-      ByteBuffer byteBuffer = UTF_8.encode(src);
+      ByteBuffer byteBuffer = UTF_8.encode(src.toString());
       for (Cursive operation : operations) {
         byteBuffer = operation.f(byteBuffer);
       }
       return byteBuffer;
     }
 
-    public static ByteBuffer cat(ByteBuffer src, ByteBuffer dest) {
+    public static <R extends ByteBuffer, S extends ByteBuffer> R cat(S src, R dest) {
       int need = src
           .remaining(),
           have = dest.remaining();
       if (have > need) {
-        return dest.put(src);
+        return (R) dest.put(src);
       }
-      dest.put((ByteBuffer) src.slice().limit(have));
+      dest.put((S) src.slice().limit(have));
       src.position(src.position() + have);
       return dest;
     }
 
-    public static ByteBuffer grow(ByteBuffer src) {
-      return ByteBuffer.allocateDirect(src.capacity() << 1).put(src);
+    public static <T extends ByteBuffer, S extends ByteBuffer> T grow(S src) {
+      return (T) ByteBuffer.allocateDirect(src.capacity() << 1).put(src);
     }
   }
 }
