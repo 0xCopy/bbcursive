@@ -302,5 +302,27 @@ public interface Cursive {
     public static <T extends ByteBuffer, S extends ByteBuffer> T grow(S src) {
       return (T) ByteBuffer.allocateDirect(src.capacity() << 1).put(src);
     }
+
+    /**
+     * conditional debug output assert log(Object,[prefix[,suffix]])
+     *
+     * @param ob
+     * @param prefixSuffix
+     * @return
+     */
+    public static boolean log(Object ob, String... prefixSuffix) {
+      if (prefixSuffix.length > 0)
+        System.err.print(prefixSuffix[0] + "\t");
+      if (ob instanceof ByteBuffer) {
+        bb((ByteBuffer) ob, pre.debug);
+      } else
+
+      {
+        bb(String.valueOf(ob), pre.debug);
+      }
+      if (prefixSuffix.length > 1)
+        System.err.println(prefixSuffix[1] + "\t");
+      return true;
+    }
   }
 }
