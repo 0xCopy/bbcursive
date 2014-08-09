@@ -165,6 +165,16 @@ public interface Cursive {
 
         return (T) target.position(++i);
       }
+    },
+
+    /**
+     * this is just a placeholder for varargs forinstance where {@link bbcursive.std#str(java.lang.Object)} presides over {@link bbcursive.std#str(WantsZeroCopy, Cursive...)}
+     */
+    noop {
+      @Override
+      public <T extends ByteBuffer> T f(T target) {
+        return target;
+      }
     }, skipDigits {
       @Override
       public <T extends ByteBuffer> T f(T target) {

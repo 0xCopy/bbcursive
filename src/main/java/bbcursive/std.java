@@ -49,6 +49,16 @@ public class std {
   /**
    * just saves a few chars
    * @param something toString will run on this
+   * @param atoms
+   * @return
+   */
+  public static String str(WantsZeroCopy something, Cursive... atoms) {
+    return str(something.asByteBuffer(),atoms);
+  }
+
+  /**
+   * just saves a few chars
+   * @param something toString will run on this
    * @return
    */
   public static String str(Object something) {
