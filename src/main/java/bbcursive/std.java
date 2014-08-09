@@ -47,6 +47,15 @@ public class std {
   }
 
   /**
+   * just saves a few chars
+   * @param something toString will run on this
+   * @return
+   */
+  public static String str(Object something) {
+    return String.valueOf(something);
+  }
+
+  /**
    * convenience method
    *
    * @param src
