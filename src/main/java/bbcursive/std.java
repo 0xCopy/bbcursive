@@ -1,6 +1,8 @@
 package bbcursive;
 
 import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -55,6 +57,15 @@ public class std {
   public static String str(WantsZeroCopy something, Cursive... atoms) {
     return str(something.asByteBuffer(),atoms);
   }
+/**
+   * just saves a few chars
+   * @param something toString will run on this
+   * @param atoms
+   * @return
+   */
+  public static String str(AtomicReference<?extends WantsZeroCopy> something, Cursive... atoms) {
+    return str(something.get(),atoms);
+  }
 
   /**
    * just saves a few chars
@@ -81,7 +92,7 @@ public class std {
     return byteBuffer;
   }
 
-  public static <R extends ByteBuffer, S extends ByteBuffer> R cat(S src, R dest) {
+  public static <R extends ByteBuffer, S extends ByteBuffer> R push(S src, R dest) {
     int need = src
         .remaining(),
         have = dest.remaining();
@@ -132,5 +143,30 @@ public class std {
     if (prefixSuffix.length > 1)
       System.err.println(prefixSuffix[1] + "\t");
     return true;
+  }
+
+  public static ByteBuffer cat(List<ByteBuffer> byteBuffers) {
+    ByteBuffer[] byteBuffers1 = byteBuffers.toArray(new ByteBuffer[byteBuffers.size()]);
+    return cat(byteBuffers1);
+  }
+
+  public static ByteBuffer cat(ByteBuffer... src) {
+    ByteBuffer cursor;
+    int total = 0;
+    if (1 < src.length) {
+      for (int i = 0, payloadLength = src.length; i < payloadLength; i++) {
+        ByteBuffer byteBuffer = src[i];
+        total += byteBuffer.remaining();
+      }
+      cursor = ByteBuffer.allocateDirect(total);
+      for (int i = 0, payloadLength = src.length; i < payloadLength; i++) {
+        ByteBuffer byteBuffer = src[i];
+        cursor.put(byteBuffer);
+      }
+      cursor.rewind();
+    } else {
+      cursor = src[0];
+    }
+    return cursor;
   }
 }
