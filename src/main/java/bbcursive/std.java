@@ -1,9 +1,13 @@
 package bbcursive;
 
+import bbcursive.Cursive.post;
+import bbcursive.Cursive.pre;
+
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static bbcursive.Cursive.pre.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
@@ -35,13 +39,13 @@ public class std {
    */
   public static String str(ByteBuffer bytes, Cursive... operations) {
     for (Cursive operation : operations) {
-      if (operation instanceof Cursive.pre) {
+      if (operation instanceof pre) {
         bytes = operation.f(bytes);
       }
     }
     String s = UTF_8.decode(bytes).toString();
     for (Cursive operation : operations) {
-      if (operation instanceof Cursive.post) {
+      if (operation instanceof post) {
         bytes = operation.f(bytes);
       }
     }
@@ -129,18 +133,19 @@ public class std {
    * @return
    */
   public static boolean log$(Object ob, String... prefixSuffix) {
+    boolean hasSuffix = prefixSuffix.length > 1;
     if (prefixSuffix.length > 0)
       System.err.print(prefixSuffix[0] + "\t");
     if (ob instanceof ByteBuffer) {
-      bb((ByteBuffer) ob, Cursive.pre.debug);
+      bb((ByteBuffer) ob, debug);
     } else if (ob instanceof WantsZeroCopy) {
       WantsZeroCopy wantsZeroCopy = (WantsZeroCopy) ob;
-      bb(wantsZeroCopy.asByteBuffer());
+      bb(wantsZeroCopy.asByteBuffer(),debug);
     }else
     {
-      bb(String.valueOf(ob), Cursive.pre.debug);
+      bb(String.valueOf(ob), debug);
     }
-    if (prefixSuffix.length > 1)
+    if (hasSuffix)
       System.err.println(prefixSuffix[1] + "\t");
     return true;
   }
