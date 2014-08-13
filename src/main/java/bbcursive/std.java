@@ -96,6 +96,15 @@ public class std {
     return byteBuffer;
   }
 
+  /**
+   *
+   * @param src
+   * @param dest
+   * @param <R>
+   * @param <S>
+   * @return
+   */
+
   public static <R extends ByteBuffer, S extends ByteBuffer> R push(S src, R dest) {
     int need = src
         .remaining(),
