@@ -4,7 +4,7 @@
 
   <groupId>bbcursive</groupId>
   <artifactId>bbcursive</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.0-anyNPO</version>
   <packaging>jar</packaging>
 
   <name>bbcursive</name>
