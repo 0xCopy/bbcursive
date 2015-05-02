@@ -22,27 +22,27 @@ public interface Cursive {
 
   enum pre implements Cursive {
     duplicate {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         return (T) target.duplicate();
       }
     }, flip {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         return (T) target.flip();
       }
     }, slice {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         return (T) target.slice();
       }
     }, mark {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         return (T) target.mark();
       }
     }, reset {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         return (T) target.reset();
       }
@@ -51,7 +51,7 @@ public interface Cursive {
      * exists in both pre and post Cursive atoms.
      */
     rewind {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         return (T) target.rewind();
       }
@@ -60,13 +60,13 @@ public interface Cursive {
      * rewinds, dumps to console but returns unchanged buffer
      */
     debug {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         System.err.println("%%: " + std.str(target, duplicate, rewind));
         return target;
       }
     }, ro {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         return (T) target.asReadOnlyBuffer();
       }
@@ -81,7 +81,7 @@ public interface Cursive {
 
 
     forceSkipWs {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         int position = target.position();
 
@@ -95,7 +95,7 @@ public interface Cursive {
       }
     },
     skipWs {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         int position = target.position();
 
@@ -106,7 +106,7 @@ public interface Cursive {
       }
     },
     toWs {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         while (target.hasRemaining() && !Character.isWhitespace(target.get())) {
         }
@@ -117,7 +117,7 @@ public interface Cursive {
      * @throws java.nio.BufferUnderflowException if EOL was not reached
      */
     forceToEol {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         while (target.hasRemaining() && '\n' != target.get()) {
         }
@@ -131,7 +131,7 @@ public interface Cursive {
      * makes best-attempt at reaching eol or returns end of buffer
      */
     toEol {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         while (target.hasRemaining() && '\n' != target.get()) {
         }
@@ -139,7 +139,7 @@ public interface Cursive {
       }
     },
     back1 {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         int position = target.position();
         return (T) (0 < position ? target.position(position - 1) : target);
@@ -149,7 +149,7 @@ public interface Cursive {
      * reverses position _up to_ 2.
      */
     back2 {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         int position = target.position();
         return (T) (1 < position ? target.position(position - 2) : bb(target, back1));
@@ -157,7 +157,7 @@ public interface Cursive {
     }, /**
      * reduces the position of target until the character is non-white.
      */rtrim {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         int start = target.position(), i = start;
         while (0 <= --i && Character.isWhitespace(target.get(i))) {
@@ -171,12 +171,12 @@ public interface Cursive {
      * this is just a placeholder for varargs forinstance where {@link bbcursive.std#str(java.lang.Object)} presides over {@link bbcursive.std#str(WantsZeroCopy, Cursive...)}
      */
     noop {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         return target;
       }
     }, skipDigits {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         while (target.hasRemaining() && Character.isDigit(target.get())) {
         }
@@ -187,34 +187,34 @@ public interface Cursive {
 
   enum post implements Cursive {
     compact {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         return (T) target.compact();
       }
     }, reset {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         return (T) target.reset();
       }
     }, rewind {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         return (T) target.rewind();
       }
     }, clear {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         return (T) target.clear();
       }
 
     }, grow {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         return (T) std.grow(target);
       }
 
     }, ro {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         return (T) target.asReadOnlyBuffer();
       }
@@ -224,7 +224,7 @@ public interface Cursive {
      */
 
     pad0 {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         while (target.hasRemaining()) {
           target.put((byte) 0);
@@ -237,7 +237,7 @@ public interface Cursive {
      */
 
     pad0Until {
-      @Override
+
       public <T extends ByteBuffer> T f(T target) {
         int limit = target.limit();
         target.flip();
