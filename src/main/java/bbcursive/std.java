@@ -2,6 +2,10 @@ package bbcursive;
 
 import bbcursive.Cursive.post;
 import bbcursive.Cursive.pre;
+import com.databricks.fastbuffer.ByteBufferReader;
+import com.databricks.fastbuffer.JavaByteBufferReader;
+import com.databricks.fastbuffer.UnsafeDirectByteBufferReader;
+import com.databricks.fastbuffer.UnsafeHeapByteBufferReader;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -28,6 +32,20 @@ public class std {
       b1 = op.f(b1);
     }
     return (T) b1;
+  }
+
+  public static <T extends ByteBufferReader,S extends WantsZeroCopy> T fast(S zc) {
+    return fast(zc.asByteBuffer());
+  }
+
+  public static <T extends ByteBufferReader> T fast(ByteBuffer buf) {
+    T r;
+    try {
+      r=(T) (buf.hasArray() ? new UnsafeHeapByteBufferReader(buf) : new UnsafeDirectByteBufferReader(buf));
+    } catch (UnsupportedOperationException e) {
+      r=(T) new JavaByteBufferReader(buf);
+    }
+    return r;
   }
 
   /**
