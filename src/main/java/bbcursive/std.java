@@ -320,9 +320,7 @@ public class std {
     }
 
     public static ByteBuffer alloc(int size) {
-        if (null != allocator) {
-             return allocator.allocate(size);
-        }else return ByteBuffer.allocateDirect(size);
+        return null != allocator ? allocator.allocate(size) : ByteBuffer.allocateDirect(size);
      }
 
     public static ByteBufferReader alloca(int size) {

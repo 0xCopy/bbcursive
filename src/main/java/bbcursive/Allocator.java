@@ -20,9 +20,9 @@ public class Allocator {
 
      int size = initialCapacity;
 
-    public Allocator(int... megs) {
-        if(megs.length>0)
-        this.initialCapacity = megs[0];
+    public Allocator(int... bytes) {
+        if(bytes.length>0)
+        this.initialCapacity = bytes[0];
 
         ByteBuffer buffer = null;
         while (buffer == null)
