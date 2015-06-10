@@ -64,7 +64,7 @@ public class std {
         }
         String s = UTF_8.decode(bytes).toString();
         for (Cursive operation : operations) {
-            if (operation instanceof post) {
+            if (!(operation instanceof pre)) {
                 bytes = operation.f(bytes);
             }
         }
@@ -326,5 +326,4 @@ public class std {
     public static ByteBufferReader alloca(int size) {
         return fast(alloc(size));
     }
-
 }
