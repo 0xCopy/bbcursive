@@ -18,33 +18,33 @@ import static bbcursive.std.bb;
  * </pre>
  */
 public interface Cursive {
-  <T extends ByteBuffer> T f(T target);
+  ByteBuffer apply(ByteBuffer target);
 
   enum pre implements Cursive {
     duplicate {
 
-      public <T extends ByteBuffer> T f(T target) {
-        return (T) target.duplicate();
+      public ByteBuffer apply(ByteBuffer target) {
+        return target.duplicate();
       }
     }, flip {
 
-      public <T extends ByteBuffer> T f(T target) {
-        return (T) target.flip();
+      public ByteBuffer apply(ByteBuffer target) {
+        return ( ByteBuffer ) target.flip();
       }
     }, slice {
 
-      public <T extends ByteBuffer> T f(T target) {
-        return (T) target.slice();
+      public ByteBuffer apply(ByteBuffer target) {
+        return target.slice();
       }
     }, mark {
 
-      public <T extends ByteBuffer> T f(T target) {
-        return (T) target.mark();
+      public ByteBuffer apply(ByteBuffer target) {
+        return ( ByteBuffer ) target.mark();
       }
     }, reset {
 
-      public <T extends ByteBuffer> T f(T target) {
-        return (T) target.reset();
+      public ByteBuffer apply(ByteBuffer target) {
+        return ( ByteBuffer ) target.reset();
       }
     },
     /**
@@ -52,8 +52,8 @@ public interface Cursive {
      */
     rewind {
 
-      public <T extends ByteBuffer> T f(T target) {
-        return (T) target.rewind();
+      public ByteBuffer apply(ByteBuffer target) {
+        return ( ByteBuffer ) target.rewind();
       }
     },
     /**
@@ -61,14 +61,14 @@ public interface Cursive {
      */
     debug {
 
-      public <T extends ByteBuffer> T f(T target) {
+      public ByteBuffer apply(ByteBuffer target) {
         System.err.println("%%: " + std.str(target, duplicate, rewind));
         return target;
       }
     }, ro {
 
-      public <T extends ByteBuffer> T f(T target) {
-        return (T) target.asReadOnlyBuffer();
+      public ByteBuffer apply(ByteBuffer target) {
+        return target.asReadOnlyBuffer();
       }
     },
 
@@ -81,12 +81,10 @@ public interface Cursive {
 
 
     forceSkipWs {
-
-      public <T extends ByteBuffer> T f(T target) {
+      public ByteBuffer apply(ByteBuffer target) {
         int position = target.position();
 
-        while (target.hasRemaining() && Character.isWhitespace(target.get())) {
-        }
+        while (target.hasRemaining() && Character.isWhitespace(target.get()));
         if (!target.hasRemaining()) {
           target.position(position);
           throw new BufferUnderflowException();
@@ -96,7 +94,7 @@ public interface Cursive {
     },
     skipWs {
 
-      public <T extends ByteBuffer> T f(T target) {
+      public ByteBuffer apply(ByteBuffer target) {
         int position = target.position();
 
         while (target.hasRemaining() && Character.isWhitespace(target.get())) {
@@ -107,7 +105,7 @@ public interface Cursive {
     },
     toWs {
 
-      public <T extends ByteBuffer> T f(T target) {
+      public ByteBuffer apply(ByteBuffer target) {
         while (target.hasRemaining() && !Character.isWhitespace(target.get())) {
         }
         return target;
@@ -118,7 +116,7 @@ public interface Cursive {
      */
     forceToEol {
 
-      public <T extends ByteBuffer> T f(T target) {
+      public ByteBuffer apply(ByteBuffer target) {
         while (target.hasRemaining() && '\n' != target.get()) {
         }
         if (!target.hasRemaining()) {
@@ -132,7 +130,7 @@ public interface Cursive {
      */
     toEol {
 
-      public <T extends ByteBuffer> T f(T target) {
+      public ByteBuffer apply(ByteBuffer target) {
         while (target.hasRemaining() && '\n' != target.get()) {
         }
         return target;
@@ -140,9 +138,9 @@ public interface Cursive {
     },
     back1 {
 
-      public <T extends ByteBuffer> T f(T target) {
+      public ByteBuffer apply(ByteBuffer target) {
         int position = target.position();
-        return (T) (0 < position ? target.position(position - 1) : target);
+        return ( ByteBuffer ) (0 < position ? target.position(position - 1) : target);
       }
     },
     /**
@@ -150,20 +148,20 @@ public interface Cursive {
      */
     back2 {
 
-      public <T extends ByteBuffer> T f(T target) {
+      public ByteBuffer apply(ByteBuffer target) {
         int position = target.position();
-        return (T) (1 < position ? target.position(position - 2) : bb(target, back1));
+        return ( ByteBuffer ) (1 < position ? target.position(position - 2) : bb(target, back1));
       }
     }, /**
      * reduces the position of target until the character is non-white.
      */rtrim {
 
-      public <T extends ByteBuffer> T f(T target) {
+      public ByteBuffer apply(ByteBuffer target) {
         int start = target.position(), i = start;
         while (0 <= --i && Character.isWhitespace(target.get(i))) {
         }
 
-        return (T) target.position(++i);
+        return ( ByteBuffer ) target.position(++i);
       }
     },
 
@@ -172,12 +170,12 @@ public interface Cursive {
      */
     noop {
 
-      public <T extends ByteBuffer> T f(T target) {
+      public ByteBuffer apply(ByteBuffer target) {
         return target;
       }
     }, skipDigits {
 
-      public <T extends ByteBuffer> T f(T target) {
+      public ByteBuffer apply(ByteBuffer target) {
         while (target.hasRemaining() && Character.isDigit(target.get())) {
         }
         return target;
@@ -188,35 +186,35 @@ public interface Cursive {
   enum post implements Cursive {
     compact {
 
-      public <T extends ByteBuffer> T f(T target) {
-        return (T) target.compact();
+      public ByteBuffer apply(ByteBuffer target) {
+        return target.compact();
       }
     }, reset {
 
-      public <T extends ByteBuffer> T f(T target) {
-        return (T) target.reset();
+      public ByteBuffer apply(ByteBuffer target) {
+        return ( ByteBuffer ) target.reset();
       }
     }, rewind {
 
-      public <T extends ByteBuffer> T f(T target) {
-        return (T) target.rewind();
+      public ByteBuffer apply(ByteBuffer target) {
+        return ( ByteBuffer ) target.rewind();
       }
     }, clear {
 
-      public <T extends ByteBuffer> T f(T target) {
-        return (T) target.clear();
+      public ByteBuffer apply(ByteBuffer target) {
+        return ( ByteBuffer ) target.clear();
       }
 
     }, grow {
 
-      public <T extends ByteBuffer> T f(T target) {
-        return (T) std.grow(target);
+      public ByteBuffer apply(ByteBuffer target) {
+        return std.grow(target);
       }
 
     }, ro {
 
-      public <T extends ByteBuffer> T f(T target) {
-        return (T) target.asReadOnlyBuffer();
+      public ByteBuffer apply(ByteBuffer target) {
+        return target.asReadOnlyBuffer();
       }
     },
     /**
@@ -225,7 +223,7 @@ public interface Cursive {
 
     pad0 {
 
-      public <T extends ByteBuffer> T f(T target) {
+      public ByteBuffer apply(ByteBuffer target) {
         while (target.hasRemaining()) {
           target.put((byte) 0);
         }
@@ -238,13 +236,13 @@ public interface Cursive {
 
     pad0Until {
 
-      public <T extends ByteBuffer> T f(T target) {
+      public ByteBuffer apply(ByteBuffer target) {
         int limit = target.limit();
         target.flip();
         while (target.hasRemaining()) {
           target.put((byte) 0);
         }
-        return (T) target.limit(limit);
+        return ( ByteBuffer ) target.limit(limit);
       }
     }
   }

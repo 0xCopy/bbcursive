@@ -1,6 +1,5 @@
 package bbcursive;
 
-import bbcursive.Cursive.post;
 import bbcursive.Cursive.pre;
 import com.databricks.fastbuffer.ByteBufferReader;
 import com.databricks.fastbuffer.JavaByteBufferReader;
@@ -18,33 +17,33 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * Created by jim on 8/8/14.
  */
 public class std {
-    public static <T extends ByteBuffer> T bb(T b, Cursive... ops) {
+    public static ByteBuffer  bb(ByteBuffer b, Cursive... ops) {
         for (int i = 0, opsLength = ops.length; i < opsLength; i++) {
             Cursive op = ops[i];
-            b = op.f(b);
+            b = op.apply(b);
         }
         return b;
     }
 
-    public static <T extends ByteBuffer, S extends WantsZeroCopy> T bb(S b, Cursive... ops) {
+    public static <  S extends WantsZeroCopy> ByteBuffer bb(S b, Cursive... ops) {
         ByteBuffer b1 = b.asByteBuffer();
         for (int i = 0, opsLength = ops.length; i < opsLength; i++) {
             Cursive op = ops[i];
-            b1 = op.f(b1);
+            b1 = op.apply(b1);
         }
-        return (T) b1;
+        return b1;
     }
 
-    public static <T extends ByteBufferReader, S extends WantsZeroCopy> T fast(S zc) {
+    public static <S extends WantsZeroCopy> ByteBufferReader fast(S zc) {
         return fast(zc.asByteBuffer());
     }
 
-    public static <T extends ByteBufferReader> T fast(ByteBuffer buf) {
-        T r;
+    public static ByteBufferReader fast(ByteBuffer buf) {
+        ByteBufferReader r;
         try {
-            r = (T) (buf.hasArray() ? new UnsafeHeapByteBufferReader(buf) : new UnsafeDirectByteBufferReader(buf));
+            r = (ByteBufferReader) (buf.hasArray() ? new UnsafeHeapByteBufferReader(buf) : new UnsafeDirectByteBufferReader(buf));
         } catch (UnsupportedOperationException e) {
-            r = (T) new JavaByteBufferReader(buf);
+            r = new JavaByteBufferReader(buf);
         }
         return r;
     }
@@ -59,13 +58,13 @@ public class std {
     public static String str(ByteBuffer bytes, Cursive... operations) {
         for (Cursive operation : operations) {
             if (operation instanceof pre) {
-                bytes = operation.f(bytes);
+                bytes = operation.apply(bytes);
             }
         }
         String s = UTF_8.decode(bytes).toString();
         for (Cursive operation : operations) {
             if (!(operation instanceof pre)) {
-                bytes = operation.f(bytes);
+                bytes = operation.apply(bytes);
             }
         }
         return s;
@@ -150,8 +149,6 @@ public class std {
 
                 }
             }
-
-
             res = (int) ((neg ? -x : x) & 0xffffffffL);
         }
         return res;
@@ -167,7 +164,7 @@ public class std {
 
         ByteBuffer byteBuffer = UTF_8.encode(src.toString());
         for (Cursive operation : operations) {
-            byteBuffer = operation.f(byteBuffer);
+            byteBuffer = operation.apply(byteBuffer);
         }
         return byteBuffer;
     }
@@ -233,25 +230,23 @@ public class std {
     /**
      * @param src
      * @param dest
-     * @param <R>
-     * @param <S>
      * @return
      */
 
-    public static <R extends ByteBuffer, S extends ByteBuffer> R push(S src, R dest) {
+    public static  ByteBuffer push(ByteBuffer src, ByteBuffer dest) {
         int need = src
                 .remaining(),
                 have = dest.remaining();
         if (have > need) {
-            return (R) dest.put(src);
+            return (ByteBuffer) dest.put(src);
         }
-        dest.put((S) src.slice().limit(have));
+        dest.put((ByteBuffer) src.slice().limit(have));
         src.position(src.position() + have);
         return dest;
     }
 
-    public static <T extends ByteBuffer, S extends ByteBuffer> T grow(S src) {
-        return (T) ByteBuffer.allocateDirect(src.capacity() << 1).put(src);
+    public static  ByteBuffer grow(ByteBuffer src) {
+        return ByteBuffer.allocateDirect(src.capacity() << 1).put(src);
     }
 
     /**
