@@ -20,15 +20,17 @@ public class std {
     public static ByteBuffer  bb(ByteBuffer b, Cursive... ops) {
         for (int i = 0, opsLength = ops.length; i < opsLength; i++) {
             Cursive op = ops[i];
+            if(null==op)return null;
             b = op.apply(b);
         }
         return b;
     }
 
-    public static <  S extends WantsZeroCopy> ByteBuffer bb(S b, Cursive... ops) {
+    public static < S extends WantsZeroCopy> ByteBuffer bb(S b, Cursive... ops) {
         ByteBuffer b1 = b.asByteBuffer();
         for (int i = 0, opsLength = ops.length; i < opsLength; i++) {
             Cursive op = ops[i];
+            if(null==op)return null;
             b1 = op.apply(b1);
         }
         return b1;
@@ -41,7 +43,7 @@ public class std {
     public static ByteBufferReader fast(ByteBuffer buf) {
         ByteBufferReader r;
         try {
-            r = (ByteBufferReader) (buf.hasArray() ? new UnsafeHeapByteBufferReader(buf) : new UnsafeDirectByteBufferReader(buf));
+            r = buf.hasArray() ? new UnsafeHeapByteBufferReader(buf) : new UnsafeDirectByteBufferReader(buf);
         } catch (UnsupportedOperationException e) {
             r = new JavaByteBufferReader(buf);
         }
