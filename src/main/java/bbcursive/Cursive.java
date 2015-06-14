@@ -93,13 +93,8 @@ public interface Cursive {
       }
     },
     skipWs {
-
       public ByteBuffer apply(ByteBuffer target) {
-        int position = target.position();
-
-        while (target.hasRemaining() && Character.isWhitespace(target.get())) {
-        }
-
+        while (target.hasRemaining() && Character.isWhitespace(target.get()));
         return bb(target, back1);
       }
     },
