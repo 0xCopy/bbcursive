@@ -12,17 +12,18 @@ import static bbcursive.std.log;
 public class Allocator {
 
      ByteBuffer DIRECT_HEAP;
-    static public int MEG = (1<<10)<<10,BLOCKSIZE=MEG*2;
+    public static int MEG = (1<<10)<<10,BLOCKSIZE=MEG*2;
 
     private  int initialCapacity =Runtime.getRuntime().availableProcessors()*20*2;
-    final private  boolean test = true;
+
+
     public  final ByteBuffer EMPTY_SET = ByteBuffer.allocate(0).asReadOnlyBuffer() ;
 
      int size = initialCapacity;
 
     public Allocator(int... bytes) {
         if(bytes.length>0)
-        this.initialCapacity = bytes[0];
+            initialCapacity = bytes[0];
 
         ByteBuffer buffer = null;
         while (buffer == null)

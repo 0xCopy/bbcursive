@@ -7,6 +7,7 @@ import com.databricks.fastbuffer.UnsafeDirectByteBufferReader;
 import com.databricks.fastbuffer.UnsafeHeapByteBufferReader;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -16,7 +17,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 /**
  * Created by jim on 8/8/14.
  */
-public class std {
+public   class std {
+    public static ByteBuffer  br(ByteBuffer b, Cursive... ops) {
+        return ops.length==00||null==ops[0]?null:ops.length == 1 ? ops[0].apply(b) : ops[0].apply(br(b, Arrays.copyOfRange(ops, 1, ops.length)));
+
+    }
+    
     public static ByteBuffer  bb(ByteBuffer b, Cursive... ops) {
         for (int i = 0, opsLength = ops.length; i < opsLength; i++) {
             Cursive op = ops[i];
@@ -219,7 +225,7 @@ public class std {
                     case '-':
                         neg = true;
                     case '+':
-                                   break;
+                        break;
                 }
             }
 
@@ -322,5 +328,127 @@ public class std {
 
     public static ByteBufferReader alloca(int size) {
         return fast(alloc(size));
+    }
+
+    /**
+     * reposition
+     *
+     * @param position
+     * @return
+     */
+    public static Cursive pos(int position) {
+        return target ->
+                (ByteBuffer) target.position(position);
+
+    }
+
+    /**
+     * reposition
+     *
+     * @param position
+     * @return
+     */
+    public static Cursive lim(int position) {
+        return target ->(ByteBuffer) target.limit(position);
+
+    }
+
+    public static ByteBuffer consumeString(ByteBuffer buffer) {
+        //TODO unicode wat?
+        while (buffer.hasRemaining()) {
+            byte current = buffer.get();
+            switch (current) {
+                case '"':
+                    return buffer;
+                case '\\':
+                    byte next = buffer.get();
+                    switch (next) {
+                        case 'u':
+                            buffer.position(buffer.position() + 4);
+                        default:
+                    }
+            }
+        }
+        return buffer;
+    }
+
+    public static ByteBuffer consumeNumber(ByteBuffer slice) {
+        byte b = ((ByteBuffer) slice.mark()).get();
+
+        boolean sign = b == '-' || b == '+';
+        if (!sign) slice.reset();
+
+        boolean dot = false;
+        boolean etoken = false;
+        boolean esign = false;
+        while (slice.hasRemaining()) {
+            while (slice.hasRemaining() && Character.isDigit(b = ((ByteBuffer) slice.mark()).get())) ;
+            char x = (char) b;
+            switch (b) {
+                case '.':
+                    assert !dot : "extra dot";
+                    dot = true;
+                case 'E':
+                case 'e':
+                    assert !etoken : "missing digits or redundant exponent";
+                    etoken = true;
+                case '+':
+                case '-':
+                    assert !esign : "bad exponent sign";
+                    esign = true;
+                default:
+                    if (!Character.isDigit(b)) return (ByteBuffer) slice.reset();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * consumes a token from the current ByteBuffer position.  null signals fail and should reset.
+     *
+     * @param exemplar ussually name().getBytes(), but might be other value also.
+     * @return null if no match -- rollback not done here use Narsive.$ for whitespace and rollback
+     */
+    public static Cursive genericAdvance(byte... exemplar) {
+
+        return target -> {
+            int c = 0;
+            while (c < exemplar.length && target.hasRemaining() && exemplar[c] == target.get()) c++;
+            return c == exemplar.length ? target : null;
+        };
+    }
+
+    public static Cursive abort(int rollbackPosition) {
+        return b->bb(b, pos(rollbackPosition), null);
+    }
+
+    public static Cursive anyOf(Cursive... anyOf) {
+        return b -> {
+            for (Cursive o : anyOf) {
+                ByteBuffer bb = bb(b, o);
+                if (null != bb) {
+                    return bb;
+                }
+            }
+            return null;
+        };
+    }
+
+    public static Cursive opt(Cursive... allOrPrevious) {
+        return byteBuffer -> {
+            ByteBuffer bb = bb(byteBuffer, allOrPrevious);
+            return null == bb ? byteBuffer : bb;
+        };
+    }
+
+    /**
+     * allOf of, in sequence, without failures
+     *
+     * @param allOf
+     * @return null if not allOf match in sequence, buffer rolled back
+     */
+    public static Cursive allOf
+    (Cursive... allOf) {
+        return target -> bb(target, allOf);
     }
 }
