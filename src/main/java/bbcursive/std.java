@@ -17,26 +17,37 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 /**
  * Created by jim on 8/8/14.
  */
-public   class std {
-    public static ByteBuffer  br(ByteBuffer b, Cursive... ops) {
-        return ops.length==00||null==ops[0]?null:ops.length == 1 ? ops[0].apply(b) : ops[0].apply(br(b, Arrays.copyOfRange(ops, 1, ops.length)));
+public class std {
+    public static Allocator allocator;
 
+    public static ByteBuffer bb(ByteBuffer b, Cursive... ops) {
+        if (ops.length == 0) {
+            return b;
+        }
+
+        Cursive op = ops[0];
+        if(op==null)return null;
+        if (ops.length == 1) {
+            return op.apply(b);
+        }
+        return op.apply(bb(b, Arrays.copyOfRange(ops, 1, ops.length)));
     }
-    
-    public static ByteBuffer  bb(ByteBuffer b, Cursive... ops) {
+
+    public static ByteBuffer br(ByteBuffer b, Cursive... ops) {
+        if (null == b) return null;
         for (int i = 0, opsLength = ops.length; i < opsLength; i++) {
             Cursive op = ops[i];
-            if(null==op)return null;
+            if (null == op) return null;
             b = op.apply(b);
         }
         return b;
     }
 
-    public static < S extends WantsZeroCopy> ByteBuffer bb(S b, Cursive... ops) {
+    public static <S extends WantsZeroCopy> ByteBuffer bb(S b, Cursive... ops) {
         ByteBuffer b1 = b.asByteBuffer();
         for (int i = 0, opsLength = ops.length; i < opsLength; i++) {
             Cursive op = ops[i];
-            if(null==op)return null;
+            if (null == op) return null;
             b1 = op.apply(b1);
         }
         return b1;
@@ -153,7 +164,7 @@ public   class std {
                     case '-':
                         neg = true;
                     case '+':
-                            break;
+                        break;
 
                 }
             }
@@ -161,6 +172,7 @@ public   class std {
         }
         return res;
     }
+
     /**
      * convenience method
      *
@@ -177,8 +189,7 @@ public   class std {
         return byteBuffer;
     }
 
-    public static Integer parseInt(String r)
-    {
+    public static Integer parseInt(String r) {
         long x = 0;
         boolean neg = false;
 
@@ -186,7 +197,7 @@ public   class std {
 
 
         int length = r.length();
-        if (length >0) {
+        if (length > 0) {
             int i = r.charAt(0);
             switch (i) {
                 case '0':
@@ -203,7 +214,8 @@ public   class std {
                     break;
                 case '-':
                     neg = true;
-                case '+':   break;
+                case '+':
+                    break;
 
             }
 
@@ -241,7 +253,7 @@ public   class std {
      * @return
      */
 
-    public static  ByteBuffer push(ByteBuffer src, ByteBuffer dest) {
+    public static ByteBuffer push(ByteBuffer src, ByteBuffer dest) {
         int need = src
                 .remaining(),
                 have = dest.remaining();
@@ -253,9 +265,11 @@ public   class std {
         return dest;
     }
 
-    public static  ByteBuffer grow(ByteBuffer src) {
+    public static ByteBuffer grow(ByteBuffer src) {
         return ByteBuffer.allocateDirect(src.capacity() << 1).put(src);
     }
+
+    ;
 
     /**
      * conditional debug output assert log(Object,[prefix[,suffix]])
@@ -267,8 +281,6 @@ public   class std {
     public static void log(Object ob, String... prefixSuffix) {
         assert log$(ob, prefixSuffix);
     }
-
-    ;
 
     /**
      * conditional debug output assert log(Object,[prefix[,suffix]])
@@ -299,9 +311,6 @@ public   class std {
         return cat(byteBuffers1);
     }
 
-    public static Allocator allocator ;
-
-
     public static ByteBuffer cat(ByteBuffer... src) {
         ByteBuffer cursor;
         int total = 0;
@@ -324,7 +333,7 @@ public   class std {
 
     public static ByteBuffer alloc(int size) {
         return null != allocator ? allocator.allocate(size) : ByteBuffer.allocateDirect(size);
-     }
+    }
 
     public static ByteBufferReader alloca(int size) {
         return fast(alloc(size));
@@ -337,8 +346,7 @@ public   class std {
      * @return
      */
     public static Cursive pos(int position) {
-        return target ->
-                (ByteBuffer) target.position(position);
+        return t ->t==null?t:(ByteBuffer) t.position(position);
 
     }
 
@@ -349,7 +357,7 @@ public   class std {
      * @return
      */
     public static Cursive lim(int position) {
-        return target ->(ByteBuffer) target.limit(position);
+        return target -> (ByteBuffer) target.limit(position);
 
     }
 
@@ -413,31 +421,34 @@ public   class std {
 
         return target -> {
             int c = 0;
-            while (c < exemplar.length && target.hasRemaining() && exemplar[c] == target.get()) c++;
-            return c == exemplar.length ? target : null;
+            while (null != exemplar && null != target && target.hasRemaining() && c < exemplar.length && exemplar[c] == target.get())
+                c++;
+            return null != target && c == exemplar.length ? target : null;
         };
     }
 
     public static Cursive abort(int rollbackPosition) {
-        return b->bb(b, pos(rollbackPosition), null);
+        return b -> null==b?null:bb(b, pos(rollbackPosition), null);
     }
 
     public static Cursive anyOf(Cursive... anyOf) {
         return b -> {
             for (Cursive o : anyOf) {
                 ByteBuffer bb = bb(b, o);
-                if (null != bb) {
-                    return bb;
-                }
+                if (null != bb) return bb;
             }
             return null;
         };
     }
 
     public static Cursive opt(Cursive... allOrPrevious) {
-        return byteBuffer -> {
-            ByteBuffer bb = bb(byteBuffer, allOrPrevious);
-            return null == bb ? byteBuffer : bb;
+        return t -> {
+            if (null != t) {
+                int rollback = t.position();
+                ByteBuffer bb = bb(t, allOrPrevious);
+                return null == bb ? bb(t, pos(rollback)) : bb;
+            }
+            return t;
         };
     }
 
