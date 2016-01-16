@@ -2,6 +2,7 @@ package bbcursive;
 
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+import java.util.function.UnaryOperator;
 
 import static bbcursive.std.bb;
 
@@ -17,9 +18,8 @@ import static bbcursive.std.bb;
  *
  * </pre>
  */
-public interface Cursive {
-  ByteBuffer apply(ByteBuffer target);
-
+@FunctionalInterface
+public interface Cursive extends UnaryOperator<ByteBuffer>{
   enum pre implements Cursive {
     duplicate {
 
@@ -239,7 +239,10 @@ public interface Cursive {
         }
         return ( ByteBuffer ) target.limit(limit);
       }
+
     }
+
+
   }
 
 }

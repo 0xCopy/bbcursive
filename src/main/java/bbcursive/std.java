@@ -1,6 +1,5 @@
 package bbcursive;
 
-import bbcursive.Cursive.pre;
 import com.databricks.fastbuffer.ByteBufferReader;
 import com.databricks.fastbuffer.JavaByteBufferReader;
 import com.databricks.fastbuffer.UnsafeDirectByteBufferReader;
@@ -10,9 +9,11 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.UnaryOperator;
 
 import static bbcursive.Cursive.pre.debug;
 import static java.nio.charset.StandardCharsets.UTF_8;
+
 
 /**
  * Created by jim on 8/8/14.
@@ -20,34 +21,31 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class std {
     public static Allocator allocator;
 
-    public static ByteBuffer bb(ByteBuffer b, Cursive... ops) {
-        if (ops.length == 0) {
-            return b;
-        }
-
-        Cursive op = ops[0];
-        if(op==null)return null;
-        if (ops.length == 1) {
-            return op.apply(b);
-        }
-        return op.apply(bb(b, Arrays.copyOfRange(ops, 1, ops.length)));
+    public static ByteBuffer bb(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
+        UnaryOperator<ByteBuffer> op;
+        return ops.length != 0 ? null == (op = ops[0]) ? null : ops.length == 1 ? op.apply(b) : op.apply(bb(b, Arrays.copyOfRange(ops, 1, ops.length))) : b;
     }
 
-    public static ByteBuffer br(ByteBuffer b, Cursive... ops) {
-        if (null == b) return null;
-        for (int i = 0, opsLength = ops.length; i < opsLength; i++) {
-            Cursive op = ops[i];
-            if (null == op) return null;
-            b = op.apply(b);
+    public static ByteBuffer br(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
+        ByteBuffer  r=null;
+        if (null != b) {
+            for (int i = 0, opsLength = ops.length; i < opsLength; i++) {
+                UnaryOperator<ByteBuffer> op = ops[i];
+                if (null != op) b = op.apply(b);
+                else {
+                    b=null;break;
+                }
+            }
+            r=b;
         }
-        return b;
+        return r;
     }
 
-    public static <S extends WantsZeroCopy> ByteBuffer bb(S b, Cursive... ops) {
+    public static <S extends WantsZeroCopy> ByteBuffer bb(S b, UnaryOperator<ByteBuffer>... ops) {
         ByteBuffer b1 = b.asByteBuffer();
         for (int i = 0, opsLength = ops.length; i < opsLength; i++) {
-            Cursive op = ops[i];
-            if (null == op) return null;
+            UnaryOperator<ByteBuffer> op = ops[i];
+            if (null == op) {b1=null;break;}
             b1 = op.apply(b1);
         }
         return b1;
@@ -74,15 +72,15 @@ public class std {
      * @param operations
      * @return
      */
-    public static String str(ByteBuffer bytes, Cursive... operations) {
-        for (Cursive operation : operations) {
-            if (operation instanceof pre) {
+    public static String str(ByteBuffer bytes, UnaryOperator<ByteBuffer>... operations) {
+        for (UnaryOperator<ByteBuffer> operation : operations) {
+            if (operation instanceof Cursive.pre) {
                 bytes = operation.apply(bytes);
             }
         }
         String s = UTF_8.decode(bytes).toString();
-        for (Cursive operation : operations) {
-            if (!(operation instanceof pre)) {
+        for (UnaryOperator<ByteBuffer> operation : operations) {
+            if (!(operation instanceof Cursive.pre)) {
                 bytes = operation.apply(bytes);
             }
         }
@@ -96,7 +94,7 @@ public class std {
      * @param atoms
      * @return
      */
-    public static String str(WantsZeroCopy something, Cursive... atoms) {
+    public static String str(WantsZeroCopy something, UnaryOperator<ByteBuffer>... atoms) {
         return str(something.asByteBuffer(), atoms);
     }
 
@@ -107,7 +105,7 @@ public class std {
      * @param atoms
      * @return
      */
-    public static String str(AtomicReference<? extends WantsZeroCopy> something, Cursive... atoms) {
+    public static String str(AtomicReference<? extends WantsZeroCopy> something, UnaryOperator<ByteBuffer>... atoms) {
         return str(something.get(), atoms);
     }
 
@@ -180,10 +178,10 @@ public class std {
      * @param operations
      * @return
      */
-    public static <T extends CharSequence> ByteBuffer bb(T src, Cursive... operations) {
+    public static <T extends CharSequence> ByteBuffer bb(T src, UnaryOperator<ByteBuffer>... operations) {
 
         ByteBuffer byteBuffer = UTF_8.encode(src.toString());
-        for (Cursive operation : operations) {
+        for (UnaryOperator<ByteBuffer> operation : operations) {
             byteBuffer = operation.apply(byteBuffer);
         }
         return byteBuffer;
@@ -258,7 +256,7 @@ public class std {
                 .remaining(),
                 have = dest.remaining();
         if (have > need) {
-            return (ByteBuffer) dest.put(src);
+            return dest.put(src);
         }
         dest.put((ByteBuffer) src.slice().limit(have));
         src.position(src.position() + have);
@@ -268,8 +266,6 @@ public class std {
     public static ByteBuffer grow(ByteBuffer src) {
         return ByteBuffer.allocateDirect(src.capacity() << 1).put(src);
     }
-
-    ;
 
     /**
      * conditional debug output assert log(Object,[prefix[,suffix]])
@@ -345,7 +341,7 @@ public class std {
      * @param position
      * @return
      */
-    public static Cursive pos(int position) {
+    public static UnaryOperator<ByteBuffer> pos(int position) {
         return t ->t==null?t:(ByteBuffer) t.position(position);
 
     }
@@ -356,7 +352,7 @@ public class std {
      * @param position
      * @return
      */
-    public static Cursive lim(int position) {
+    public static UnaryOperator<ByteBuffer> lim(int position) {
         return target -> (ByteBuffer) target.limit(position);
 
     }
@@ -417,7 +413,7 @@ public class std {
      * @param exemplar ussually name().getBytes(), but might be other value also.
      * @return null if no match -- rollback not done here use Narsive.$ for whitespace and rollback
      */
-    public static Cursive genericAdvance(byte... exemplar) {
+    public static UnaryOperator<ByteBuffer> genericAdvance(byte... exemplar) {
 
         return target -> {
             int c = 0;
@@ -427,28 +423,33 @@ public class std {
         };
     }
 
-    public static Cursive abort(int rollbackPosition) {
+    public static UnaryOperator<ByteBuffer> abort(int rollbackPosition) {
         return b -> null==b?null:bb(b, pos(rollbackPosition), null);
     }
 
-    public static Cursive anyOf(Cursive... anyOf) {
+    public static UnaryOperator<ByteBuffer> anyOf(UnaryOperator<ByteBuffer>... anyOf) {
         return b -> {
-            for (Cursive o : anyOf) {
+            for (UnaryOperator<ByteBuffer> o : anyOf) {
                 ByteBuffer bb = bb(b, o);
-                if (null != bb) return bb;
+                if (null == bb) {
+                    continue;
+                }
+                return bb;
             }
             return null;
         };
     }
 
-    public static Cursive opt(Cursive... allOrPrevious) {
+    public static UnaryOperator<ByteBuffer> opt(UnaryOperator<ByteBuffer>... allOrPrevious) {
         return t -> {
-            if (null != t) {
-                int rollback = t.position();
-                ByteBuffer bb = bb(t, allOrPrevious);
-                return null == bb ? bb(t, pos(rollback)) : bb;
+            ByteBuffer t1 = t;
+            if (null != t1) {
+                int rollback = t1.position();
+                ByteBuffer bb;
+
+                t1 = null == (bb = bb(t1, allOrPrevious)) ? bb(t1, pos(rollback)) : bb;
             }
-            return t;
+            return t1;
         };
     }
 
@@ -458,8 +459,7 @@ public class std {
      * @param allOf
      * @return null if not allOf match in sequence, buffer rolled back
      */
-    public static Cursive allOf
-    (Cursive... allOf) {
+    public static UnaryOperator<ByteBuffer> allOf(UnaryOperator<ByteBuffer>... allOf) {
         return target -> bb(target, allOf);
     }
 }
