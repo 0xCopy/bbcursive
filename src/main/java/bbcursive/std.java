@@ -14,6 +14,7 @@ import java.util.function.UnaryOperator;
 import static bbcursive.Cursive.pre.debug;
 import static bbcursive.Cursive.pre.mark;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Arrays.binarySearch;
 
 
 /**
@@ -484,7 +485,13 @@ public class std {
     public static UnaryOperator<ByteBuffer> chlit(char c) {
         return (ByteBuffer buf) -> buf.hasRemaining() && c == (bb(buf, mark).get() & 0xff) ? buf : null;
     }
-
+    public static UnaryOperator<ByteBuffer> anyOf(CharSequence s) {
+        int[] ints = s.chars().sorted().toArray();
+        return b -> {
+            byte b1 = b.get();
+            return -1 < binarySearch(ints, b1 & 0xff) ? b : null;
+        };
+    }
     public static UnaryOperator<ByteBuffer> chlit(CharSequence s) {
         return chlit(s.charAt(0));
     }
