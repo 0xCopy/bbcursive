@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.UnaryOperator;
 
 import static bbcursive.Cursive.pre.debug;
+import static bbcursive.Cursive.pre.mark;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 
@@ -23,7 +24,10 @@ public class std {
 
     public static ByteBuffer bb(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
         UnaryOperator<ByteBuffer> op;
-        return ops.length != 0 ? null == (op = ops[0]) ? null : ops.length == 1 ? op.apply(b) : op.apply(bb(b, Arrays.copyOfRange(ops, 1, ops.length))) : b;
+        if (0 == ops.length) return b;
+        if (null == (op = ops[0])) return null;
+        if (ops.length == 1) return op.apply(b);
+        return op.apply(bb(b, Arrays.copyOfRange(ops, 1, ops.length)));
     }
 
     public static ByteBuffer br(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
@@ -80,9 +84,7 @@ public class std {
         }
         String s = UTF_8.decode(bytes).toString();
         for (UnaryOperator<ByteBuffer> operation : operations) {
-            if (!(operation instanceof Cursive.pre)) {
-                bytes = operation.apply(bytes);
-            }
+            if (!(operation instanceof Cursive.pre)) bytes = operation.apply(bytes);
         }
         return s;
     }
@@ -424,7 +426,7 @@ public class std {
     }
 
     public static UnaryOperator<ByteBuffer> abort(int rollbackPosition) {
-        return b -> null==b?null:bb(b, pos(rollbackPosition), null);
+        return b -> null==b?null: bb(b, pos(rollbackPosition), null);
     }
 
     public static UnaryOperator<ByteBuffer> anyOf(UnaryOperator<ByteBuffer>... anyOf) {
@@ -457,9 +459,19 @@ public class std {
      * allOf of, in sequence, without failures
      *
      * @param allOf
-     * @return null if not allOf match in sequence, buffer rolled back
+     * @return null if not allOf match in sequence
      */
     public static UnaryOperator<ByteBuffer> allOf(UnaryOperator<ByteBuffer>... allOf) {
         return target -> bb(target, allOf);
     }
-}
+
+    public static UnaryOperator<ByteBuffer> repeat(UnaryOperator<ByteBuffer> op) { return byteBuffer -> {
+        ByteBuffer bb = null; ByteBuffer last; do { last = bb; bb = bb(byteBuffer, op); } while (null!= bb); return last;
+        };
+    }
+    public static UnaryOperator<ByteBuffer> chlit(char c) {
+        return (ByteBuffer buf) -> buf.hasRemaining() && c == (bb(buf, mark).get() & 0xff) ? buf : null;
+    }
+    public static UnaryOperator<ByteBuffer> chlit(CharSequence s) {
+        return chlit(s.charAt(0));
+    }}

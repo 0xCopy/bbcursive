@@ -20,7 +20,7 @@ import static bbcursive.std.bb;
  */
 @FunctionalInterface
 public interface Cursive extends UnaryOperator<ByteBuffer>{
-  enum pre implements Cursive {
+  enum pre implements UnaryOperator<ByteBuffer> {
     duplicate {
 
       public ByteBuffer apply(ByteBuffer target) {
@@ -161,10 +161,9 @@ public interface Cursive extends UnaryOperator<ByteBuffer>{
     },
 
     /**
-     * this is just a placeholder for varargs forinstance where {@link bbcursive.std#str(java.lang.Object)} presides over {@link bbcursive.std#str(WantsZeroCopy, Cursive...)}
+     * noop
      */
     noop {
-
       public ByteBuffer apply(ByteBuffer target) {
         return target;
       }
@@ -180,7 +179,6 @@ public interface Cursive extends UnaryOperator<ByteBuffer>{
 
   enum post implements Cursive {
     compact {
-
       public ByteBuffer apply(ByteBuffer target) {
         return target.compact();
       }
@@ -215,7 +213,6 @@ public interface Cursive extends UnaryOperator<ByteBuffer>{
     /**
      * fills remainder of buffer to 0's
      */
-
     pad0 {
 
       public ByteBuffer apply(ByteBuffer target) {
@@ -228,9 +225,7 @@ public interface Cursive extends UnaryOperator<ByteBuffer>{
     /**
      * fills prior bytes to current position with 0's
      */
-
     pad0Until {
-
       public ByteBuffer apply(ByteBuffer target) {
         int limit = target.limit();
         target.flip();
@@ -239,10 +234,6 @@ public interface Cursive extends UnaryOperator<ByteBuffer>{
         }
         return ( ByteBuffer ) target.limit(limit);
       }
-
     }
-
-
   }
-
 }
