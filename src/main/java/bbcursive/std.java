@@ -31,16 +31,17 @@ public class std {
     }
 
     public static ByteBuffer br(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
-        ByteBuffer  r=null;
+        ByteBuffer r = null;
         if (null != b) {
             for (int i = 0, opsLength = ops.length; i < opsLength; i++) {
                 UnaryOperator<ByteBuffer> op = ops[i];
                 if (null != op) b = op.apply(b);
                 else {
-                    b=null;break;
+                    b = null;
+                    break;
                 }
             }
-            r=b;
+            r = b;
         }
         return r;
     }
@@ -49,7 +50,10 @@ public class std {
         ByteBuffer b1 = b.asByteBuffer();
         for (int i = 0, opsLength = ops.length; i < opsLength; i++) {
             UnaryOperator<ByteBuffer> op = ops[i];
-            if (null == op) {b1=null;break;}
+            if (null == op) {
+                b1 = null;
+                break;
+            }
             b1 = op.apply(b1);
         }
         return b1;
@@ -344,7 +348,7 @@ public class std {
      * @return
      */
     public static UnaryOperator<ByteBuffer> pos(int position) {
-        return t ->t==null?t:(ByteBuffer) t.position(position);
+        return t -> t == null ? t : (ByteBuffer) t.position(position);
 
     }
 
@@ -426,7 +430,7 @@ public class std {
     }
 
     public static UnaryOperator<ByteBuffer> abort(int rollbackPosition) {
-        return b -> null==b?null: bb(b, pos(rollbackPosition), null);
+        return b -> null == b ? null : bb(b, pos(rollbackPosition), null);
     }
 
     public static UnaryOperator<ByteBuffer> anyOf(UnaryOperator<ByteBuffer>... anyOf) {
@@ -465,13 +469,44 @@ public class std {
         return target -> bb(target, allOf);
     }
 
-    public static UnaryOperator<ByteBuffer> repeat(UnaryOperator<ByteBuffer> op) { return byteBuffer -> {
-        ByteBuffer bb = null; ByteBuffer last; do { last = bb; bb = bb(byteBuffer, op); } while (null!= bb); return last;
+    public static UnaryOperator<ByteBuffer> repeat(UnaryOperator<ByteBuffer> op) {
+        return byteBuffer -> {
+            ByteBuffer bb = null;
+            ByteBuffer last;
+            do {
+                last = bb;
+                bb = bb(byteBuffer, op);
+            } while (null != bb);
+            return last;
         };
     }
+
     public static UnaryOperator<ByteBuffer> chlit(char c) {
         return (ByteBuffer buf) -> buf.hasRemaining() && c == (bb(buf, mark).get() & 0xff) ? buf : null;
     }
+
     public static UnaryOperator<ByteBuffer> chlit(CharSequence s) {
         return chlit(s.charAt(0));
-    }}
+    }
+
+    public static UnaryOperator<ByteBuffer> strlit(CharSequence s) {
+        return buffer -> {
+            ByteBuffer encode = UTF_8.encode(String.valueOf(s));
+            while (encode.hasRemaining() && buffer.hasRemaining() && encode.get() == buffer.get()) ;
+            return encode.hasRemaining() ? null : buffer;
+        };
+    }
+
+    static UnaryOperator<ByteBuffer> confix(UnaryOperator<ByteBuffer> operator, char... chars) {
+        return allOf(chlit(chars[0]), operator, chlit(chars[chars.length > 0 ? 1 : 0]));
+    }
+
+    public static UnaryOperator<ByteBuffer> confix(char open, UnaryOperator<ByteBuffer> rhs, char close) {
+        return confix(rhs, open, close);
+    }
+
+    public static UnaryOperator<ByteBuffer> confix(String s, UnaryOperator<ByteBuffer> rhs) {
+        return confix(rhs, s.toCharArray());
+    }
+}
+
