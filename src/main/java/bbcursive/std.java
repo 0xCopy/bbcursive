@@ -4,15 +4,19 @@ import com.databricks.fastbuffer.ByteBufferReader;
 import com.databricks.fastbuffer.JavaByteBufferReader;
 import com.databricks.fastbuffer.UnsafeDirectByteBufferReader;
 import com.databricks.fastbuffer.UnsafeHeapByteBufferReader;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import static bbcursive.Cursive.pre.debug;
 import static bbcursive.Cursive.pre.mark;
+import static java.lang.ThreadLocal.withInitial;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.binarySearch;
 
@@ -23,13 +27,23 @@ import static java.util.Arrays.binarySearch;
 public class std {
     public static Allocator allocator;
 
+    public static ThreadLocal<BiFunction<ByteBuffer, UnaryOperator<ByteBuffer>[], ByteBuffer>> theParser =
+            withInitial((Supplier<BiFunction<ByteBuffer, UnaryOperator<ByteBuffer>[], ByteBuffer>>) () ->
+                    std::defaultParser);
+
     public static ByteBuffer bb(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
+        return theParser.get().apply(b, ops);
+    }
+
+    @Nullable
+    private static ByteBuffer defaultParser(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
         UnaryOperator<ByteBuffer> op;
         if (0 == ops.length) return b;
         if (null == (op = ops[0])) return null;
-        if (ops.length == 1) return op.apply(b);
+        if (1 == ops.length) return op.apply(b);
         return op.apply(bb(b, Arrays.copyOfRange(ops, 1, ops.length)));
     }
+
 
     public static ByteBuffer br(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
         ByteBuffer r = null;
@@ -202,7 +216,7 @@ public class std {
 
 
         int length = r.length();
-        if (length > 0) {
+        if (0 < length) {
             int i = r.charAt(0);
             switch (i) {
                 case '0':
@@ -293,8 +307,8 @@ public class std {
      * @return
      */
     public static boolean log$(Object ob, String... prefixSuffix) {
-        boolean hasSuffix = prefixSuffix.length > 1;
-        if (prefixSuffix.length > 0)
+        boolean hasSuffix = 1 < prefixSuffix.length;
+        if (0 < prefixSuffix.length)
             System.err.print(prefixSuffix[0] + "\t");
         if (ob instanceof ByteBuffer) {
             bb((ByteBuffer) ob, debug);
@@ -349,7 +363,7 @@ public class std {
      * @return
      */
     public static UnaryOperator<ByteBuffer> pos(int position) {
-        return t -> t == null ? t : (ByteBuffer) t.position(position);
+        return t -> null == t ? t : (ByteBuffer) t.position(position);
 
     }
 
@@ -386,7 +400,7 @@ public class std {
     public static ByteBuffer consumeNumber(ByteBuffer slice) {
         byte b = ((ByteBuffer) slice.mark()).get();
 
-        boolean sign = b == '-' || b == '+';
+        boolean sign = '-' == b || '+' == b;
         if (!sign) slice.reset();
 
         boolean dot = false;
@@ -438,10 +452,7 @@ public class std {
         return b -> {
             for (UnaryOperator<ByteBuffer> o : anyOf) {
                 ByteBuffer bb = bb(b, o);
-                if (null == bb) {
-                    continue;
-                }
-                return bb;
+                if (null != bb) return bb;
             }
             return null;
         };
@@ -485,13 +496,15 @@ public class std {
     public static UnaryOperator<ByteBuffer> chlit(char c) {
         return (ByteBuffer buf) -> buf.hasRemaining() && c == (bb(buf, mark).get() & 0xff) ? buf : null;
     }
+
     public static UnaryOperator<ByteBuffer> anyOf(CharSequence s) {
         int[] ints = s.chars().sorted().toArray();
         return b -> {
             byte b1 = b.get();
-            return -1 < binarySearch(ints, b1 & 0xff) ? b : null;
+            return -1 >= binarySearch(ints, b1 & 0xff) ? null : b;
         };
     }
+
     public static UnaryOperator<ByteBuffer> chlit(CharSequence s) {
         return chlit(s.charAt(0));
     }
@@ -505,7 +518,7 @@ public class std {
     }
 
     static UnaryOperator<ByteBuffer> confix(UnaryOperator<ByteBuffer> operator, char... chars) {
-        return allOf(chlit(chars[0]), operator, chlit(chars[chars.length > 0 ? 1 : 0]));
+        return allOf(chlit(chars[0]), operator, chlit(chars[0 == chars.length ? 0 : 1]));
     }
 
     public static UnaryOperator<ByteBuffer> confix(char open, UnaryOperator<ByteBuffer> rhs, char close) {
