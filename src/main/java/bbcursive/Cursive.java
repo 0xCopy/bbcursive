@@ -126,8 +126,7 @@ public interface Cursive extends UnaryOperator<ByteBuffer>{
     toEol {
 
       public ByteBuffer apply(ByteBuffer target) {
-        while (target.hasRemaining() && '\n' != target.get()) {
-        }
+        while (target.hasRemaining() && '\n' != target.get()) { }
         return target;
       }
     },
