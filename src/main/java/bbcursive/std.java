@@ -25,23 +25,50 @@ import static java.util.Arrays.binarySearch;
  * Created by jim on 8/8/14.
  */
 public class std {
-    public static Allocator allocator;
+    private static Allocator allocator;
 
-    public static ThreadLocal<BiFunction<ByteBuffer, UnaryOperator<ByteBuffer>[], ByteBuffer>> theParser =
-            withInitial((Supplier<BiFunction<ByteBuffer, UnaryOperator<ByteBuffer>[], ByteBuffer>>) () ->
-                    std::defaultParser);
+    /**
+     * when you want to change the behaviors of the main IO parser, insert a new {@link BiFunction} to intercept
+     * parameters and returns to fire events and clean up using {@link ThreadLocal#set(Object)}
+     */
+    private static final ThreadLocal<BiFunction<ByteBuffer, UnaryOperator<ByteBuffer>[], ByteBuffer>> theParser =
+            withInitial((Supplier<BiFunction<ByteBuffer, UnaryOperator<ByteBuffer>[], ByteBuffer>>) () -> std::defaultParser);
 
+    /**
+     * this is the main bytebuffer io parser most easily coded for.
+     * <p>
+     * when you want to change the behaviors of the IO parser, insert a new
+     *
+     * @param b   the bytebuffer
+     * @param ops
+     * @return
+     */
     public static ByteBuffer bb(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
-        return theParser.get().apply(b, ops);
+        return getTheParser().get().apply(b, ops);
     }
 
     @Nullable
-    private static ByteBuffer defaultParser(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
-        UnaryOperator<ByteBuffer> op;
-        if (0 == ops.length) return b;
-        if (null == (op = ops[0])) return null;
-        if (1 == ops.length) return op.apply(b);
-        return op.apply(bb(b, Arrays.copyOfRange(ops, 1, ops.length)));
+    public static ByteBuffer defaultParser(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
+        ByteBuffer r = null;
+        e:
+        {
+            UnaryOperator<ByteBuffer> op = null;
+            switch (ops.length) {
+                case 0:
+                    r = b;
+                    break;
+                case 1:
+                    boolean b1 = null != (op = ops[0]);
+                    if (null != op)
+                        if (b1)
+                            r = op.apply(defaultParser(b, Arrays.copyOfRange(ops, 1, ops.length)));//null lambda is noop
+                        else {
+                            r = op.apply(b);//null lambda is noop
+                        }
+                    break;
+            }
+        }
+        return r;
     }
 
 
@@ -311,7 +338,7 @@ public class std {
         if (0 < prefixSuffix.length)
             System.err.print(prefixSuffix[0] + "\t");
         if (ob instanceof ByteBuffer) {
-            bb((ByteBuffer) ob, debug);
+            defaultParser((ByteBuffer) ob, debug);
         } else if (ob instanceof WantsZeroCopy) {
             WantsZeroCopy wantsZeroCopy = (WantsZeroCopy) ob;
             bb(wantsZeroCopy.asByteBuffer(), debug);
@@ -349,7 +376,7 @@ public class std {
     }
 
     public static ByteBuffer alloc(int size) {
-        return null != allocator ? allocator.allocate(size) : ByteBuffer.allocateDirect(size);
+        return null != getAllocator() ? getAllocator().allocate(size) : ByteBuffer.allocateDirect(size);
     }
 
     public static ByteBufferReader alloca(int size) {
@@ -518,15 +545,35 @@ public class std {
     }
 
     static UnaryOperator<ByteBuffer> confix(UnaryOperator<ByteBuffer> operator, char... chars) {
-        return allOf(chlit(chars[0]), operator, chlit(chars[0 == chars.length ? 0 : 1]));
+        return allOf(chlit(chars[0]), operator, chlit(chars[2 > chars.length ? 0 : 1]));
     }
 
-    public static UnaryOperator<ByteBuffer> confix(char open, UnaryOperator<ByteBuffer> rhs, char close) {
-        return confix(rhs, open, close);
+    public static UnaryOperator<ByteBuffer> confix(char open, UnaryOperator<ByteBuffer> unaryOperator, char close) {
+        return confix(unaryOperator, open, close);
     }
 
-    public static UnaryOperator<ByteBuffer> confix(String s, UnaryOperator<ByteBuffer> rhs) {
-        return confix(rhs, s.toCharArray());
+    public static UnaryOperator<ByteBuffer> confix(String s, UnaryOperator<ByteBuffer> unaryOperator) {
+        return confix(unaryOperator, s.toCharArray());
     }
+
+    public static Allocator getAllocator() {
+        return allocator;
+    }
+
+    public static void setAllocator(Allocator allocator) {
+        std.allocator = allocator;
+    }
+
+    /**
+     * when you want to change the behaviors of the main IO parser, insert a new {@link BiFunction} to intercept
+     * parameters and returns to fire events and clean up using {@link ThreadLocal#set(Object)}
+     *
+     * @return a htradlocal with a lambda
+     */
+
+    public static ThreadLocal<BiFunction<ByteBuffer, UnaryOperator<ByteBuffer>[], ByteBuffer>> getTheParser() {
+        return theParser;
+    }
+
 }
 
