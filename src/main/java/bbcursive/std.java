@@ -4,6 +4,7 @@ import com.databricks.fastbuffer.ByteBufferReader;
 import com.databricks.fastbuffer.JavaByteBufferReader;
 import com.databricks.fastbuffer.UnsafeDirectByteBufferReader;
 import com.databricks.fastbuffer.UnsafeHeapByteBufferReader;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.ByteBuffer;
@@ -15,8 +16,8 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import static bbcursive.Cursive.pre.debug;
-import static bbcursive.Cursive.pre.mark;
 import static java.lang.ThreadLocal.withInitial;
+import static java.nio.ByteBuffer.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.binarySearch;
 
@@ -50,43 +51,28 @@ public class std {
     @Nullable
     public static ByteBuffer defaultParser(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
         ByteBuffer r = null;
-        e:
-        {
-            UnaryOperator<ByteBuffer> op = null;
+        UnaryOperator<ByteBuffer> op = null;
+        int position = 0;
+        if (null != b) {
+            position = b.position();
             switch (ops.length) {
                 case 0:
                     r = b;
                     break;
                 case 1:
-                    boolean b1 = null != (op = ops[0]);
-                    if (null != op)
-                        if (b1)
-                            r = op.apply(defaultParser(b, Arrays.copyOfRange(ops, 1, ops.length)));//null lambda is noop
-                        else {
-                            r = op.apply(b);//null lambda is noop
-                        }
+                    r = (op=ops[0]).apply(b);
+                    break;
+                default:
+                    op = ops[0];
+                    UnaryOperator<ByteBuffer>[] ops1 = Arrays.copyOfRange(ops, 1, ops.length);
+                    r = bb(op.apply(b), ops1);
                     break;
             }
         }
+        if (r != null&&op!=null) log(op, "===", "@" + position);
         return r;
     }
 
-
-    public static ByteBuffer br(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
-        ByteBuffer r = null;
-        if (null != b) {
-            for (int i = 0, opsLength = ops.length; i < opsLength; i++) {
-                UnaryOperator<ByteBuffer> op = ops[i];
-                if (null != op) b = op.apply(b);
-                else {
-                    b = null;
-                    break;
-                }
-            }
-            r = b;
-        }
-        return r;
-    }
 
     public static <S extends WantsZeroCopy> ByteBuffer bb(S b, UnaryOperator<ByteBuffer>... ops) {
         ByteBuffer b1 = b.asByteBuffer();
@@ -312,7 +298,7 @@ public class std {
     }
 
     public static ByteBuffer grow(ByteBuffer src) {
-        return ByteBuffer.allocateDirect(src.capacity() << 1).put(src);
+        return allocateDirect(src.capacity() << 1).put(src);
     }
 
     /**
@@ -376,7 +362,7 @@ public class std {
     }
 
     public static ByteBuffer alloc(int size) {
-        return null != getAllocator() ? getAllocator().allocate(size) : ByteBuffer.allocateDirect(size);
+        return null != getAllocator() ? getAllocator().allocate(size) : allocateDirect(size);
     }
 
     public static ByteBufferReader alloca(int size) {
@@ -390,7 +376,7 @@ public class std {
      * @return
      */
     public static UnaryOperator<ByteBuffer> pos(int position) {
-        return t -> null == t ? t : (ByteBuffer) t.position(position);
+        return new pos(position);
 
     }
 
@@ -401,7 +387,7 @@ public class std {
      * @return
      */
     public static UnaryOperator<ByteBuffer> lim(int position) {
-        return target -> (ByteBuffer) target.limit(position);
+        return new lim(position);
 
     }
 
@@ -428,14 +414,15 @@ public class std {
         byte b = ((ByteBuffer) slice.mark()).get();
 
         boolean sign = '-' == b || '+' == b;
-        if (!sign) slice.reset();
+        if (!sign) {
+            slice.reset();
+        }
 
         boolean dot = false;
         boolean etoken = false;
         boolean esign = false;
         while (slice.hasRemaining()) {
             while (slice.hasRemaining() && Character.isDigit(b = ((ByteBuffer) slice.mark()).get())) ;
-            char x = (char) b;
             switch (b) {
                 case '.':
                     assert !dot : "extra dot";
@@ -463,38 +450,52 @@ public class std {
      */
     public static UnaryOperator<ByteBuffer> genericAdvance(byte... exemplar) {
 
-        return target -> {
-            int c = 0;
-            while (null != exemplar && null != target && target.hasRemaining() && c < exemplar.length && exemplar[c] == target.get())
-                c++;
-            return null != target && c == exemplar.length ? target : null;
+        return new UnaryOperator<ByteBuffer>() {
+            @Override
+            public ByteBuffer apply(ByteBuffer target) {
+                int c = 0;
+                while (null != exemplar && null != target && target.hasRemaining() && c < exemplar.length && exemplar[c] == target.get())
+                    c++;
+                return null != target && c == exemplar.length ? target : null;
+            }
         };
     }
 
     public static UnaryOperator<ByteBuffer> abort(int rollbackPosition) {
-        return b -> null == b ? null : bb(b, pos(rollbackPosition), null);
+        return new UnaryOperator<ByteBuffer>() {
+            @Override
+            public ByteBuffer apply(ByteBuffer b) {
+                return null == b ? null : bb(b, pos(rollbackPosition), null);
+            }
+        };
     }
 
     public static UnaryOperator<ByteBuffer> anyOf(UnaryOperator<ByteBuffer>... anyOf) {
-        return b -> {
-            for (UnaryOperator<ByteBuffer> o : anyOf) {
-                ByteBuffer bb = bb(b, o);
-                if (null != bb) return bb;
+        return new UnaryOperator<ByteBuffer>() {
+            @Override
+            public ByteBuffer apply(ByteBuffer b) {
+                for (UnaryOperator<ByteBuffer> o : anyOf) {
+                    ByteBuffer bb = defaultParser(b, o);
+                    if (null != bb) return bb;
+                }
+                return null;
             }
-            return null;
         };
     }
 
     public static UnaryOperator<ByteBuffer> opt(UnaryOperator<ByteBuffer>... allOrPrevious) {
-        return t -> {
-            ByteBuffer t1 = t;
-            if (null != t1) {
-                int rollback = t1.position();
-                ByteBuffer bb;
+        return new UnaryOperator<ByteBuffer>() {
+            @Override
+            public ByteBuffer apply(ByteBuffer t) {
+                ByteBuffer t1 = t;
+                if (null != t1) {
+                    int rollback = t1.position();
+                    ByteBuffer bb;
 
-                t1 = null == (bb = bb(t1, allOrPrevious)) ? bb(t1, pos(rollback)) : bb;
+                    t1 = null == (bb = bb(t1, allOrPrevious)) ? bb(t1, pos(rollback)) : bb;
+                }
+                return t1;
             }
-            return t1;
         };
     }
 
@@ -505,30 +506,62 @@ public class std {
      * @return null if not allOf match in sequence
      */
     public static UnaryOperator<ByteBuffer> allOf(UnaryOperator<ByteBuffer>... allOf) {
-        return target -> bb(target, allOf);
+        return new UnaryOperator<ByteBuffer>() {
+            @Override
+            public ByteBuffer apply(ByteBuffer target) {
+                return null == target ? null : bb(target, allOf);
+            }
+        };
     }
 
+    @NotNull
     public static UnaryOperator<ByteBuffer> repeat(UnaryOperator<ByteBuffer> op) {
-        return byteBuffer -> {
-            ByteBuffer bb = null;
-            ByteBuffer last;
-            do {
-                last = bb;
-                bb = bb(byteBuffer, op);
-            } while (null != bb);
-            return last;
+        return new UnaryOperator<ByteBuffer>() {
+            @Override
+            public ByteBuffer apply(ByteBuffer byteBuffer) {
+                ByteBuffer control = null;
+                ByteBuffer leadIn = byteBuffer;
+                ByteBuffer result;
+                do {
+                    result = control;
+                    leadIn = control = bb(leadIn, op);
+                } while (null != control);
+                return result;
+            }
         };
     }
 
     public static UnaryOperator<ByteBuffer> chlit(char c) {
-        return (ByteBuffer buf) -> buf.hasRemaining() && c == (bb(buf, mark).get() & 0xff) ? buf : null;
+        return new UnaryOperator<ByteBuffer>() {
+            @Override
+            public ByteBuffer apply(ByteBuffer buf) {
+                if (null != buf)
+                    if (buf.hasRemaining()) {
+                        byte b = ((ByteBuffer) buf.mark()).get();
+                        if ((c & 0xffff) == (b & 0xff))
+                            return buf;
+                        else
+                            return null;
+                    }
+                    else
+                        return null;
+                else
+                    return null;
+            }
+        };
     }
 
     public static UnaryOperator<ByteBuffer> anyOf(CharSequence s) {
         int[] ints = s.chars().sorted().toArray();
-        return b -> {
-            byte b1 = b.get();
-            return -1 >= binarySearch(ints, b1 & 0xff) ? null : b;
+        return new UnaryOperator<ByteBuffer>() {
+            @Override
+            public ByteBuffer apply(ByteBuffer b) {
+                if (b != null && b.hasRemaining()) {
+                    byte b1 = b.get();
+                    return -1 >= binarySearch(ints, b1 & 0xff) ? null : b;
+                }
+                return null;
+            }
         };
     }
 
@@ -537,15 +570,21 @@ public class std {
     }
 
     public static UnaryOperator<ByteBuffer> strlit(CharSequence s) {
-        return buffer -> {
-            ByteBuffer encode = UTF_8.encode(String.valueOf(s));
-            while (encode.hasRemaining() && buffer.hasRemaining() && encode.get() == buffer.get()) ;
-            return encode.hasRemaining() ? null : buffer;
+        return new UnaryOperator<ByteBuffer>() {
+            @Override
+            public ByteBuffer apply(ByteBuffer buffer) {
+                ByteBuffer encode = UTF_8.encode(String.valueOf(s));
+                while (encode.hasRemaining() && buffer.hasRemaining() && encode.get() == buffer.get()) ;
+                return encode.hasRemaining() ? null : buffer;
+            }
         };
     }
 
     static UnaryOperator<ByteBuffer> confix(UnaryOperator<ByteBuffer> operator, char... chars) {
-        return allOf(chlit(chars[0]), operator, chlit(chars[2 > chars.length ? 0 : 1]));
+        UnaryOperator<ByteBuffer> chlit = chlit(chars[0]);
+        char aChar = chars[2 > chars.length ? 0 : 1];
+        UnaryOperator<ByteBuffer> chlit1 = chlit(aChar);
+        return allOf(chlit, operator, chlit1);
     }
 
     public static UnaryOperator<ByteBuffer> confix(char open, UnaryOperator<ByteBuffer> unaryOperator, char close) {
@@ -575,5 +614,30 @@ public class std {
         return theParser;
     }
 
+    private static class lim implements UnaryOperator<ByteBuffer> {
+        private final int position;
+
+        public lim(int position) {
+            this.position = position;
+        }
+
+        @Override
+        public ByteBuffer apply(ByteBuffer target) {
+            return (ByteBuffer) target.limit(position);
+        }
+    }
+
+    private static class pos implements UnaryOperator<ByteBuffer> {
+        private final int position;
+
+        public pos(int position) {
+            this.position = position;
+        }
+
+        @Override
+        public ByteBuffer apply(ByteBuffer t) {
+            return null == t ? t : (ByteBuffer) t.position(position);
+        }
+    }
 }
 
