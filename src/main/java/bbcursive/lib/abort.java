@@ -10,11 +10,6 @@ import java.util.function.UnaryOperator;
  */
 public class abort {
     public static UnaryOperator<ByteBuffer> abort(int rollbackPosition) {
-        return new UnaryOperator<ByteBuffer>() {
-            @Override
-            public ByteBuffer apply(ByteBuffer b) {
-                return null == b ? null : std.bb(b, pos.pos(rollbackPosition), null);
-            }
-        };
+        return b -> null == b ? null : std.bb(b, pos.pos(rollbackPosition), null);
     }
 }

@@ -3,6 +3,7 @@ package bbcursive.lib;
 import bbcursive.std;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.function.UnaryOperator;
 
 /**
@@ -11,6 +12,11 @@ import java.util.function.UnaryOperator;
 public class confix {
     public static UnaryOperator<ByteBuffer> confix(UnaryOperator<ByteBuffer> operator, char... chars) {
         return new UnaryOperator<ByteBuffer>() {
+            @Override
+            public String toString() {
+                return "confix:"+ Arrays.toString(chars)+" : "+operator;
+            }
+
             @Override
             public ByteBuffer apply(ByteBuffer buffer) {
                 UnaryOperator<ByteBuffer> chlit = bbcursive.lib.chlit.chlit(chars[0]);

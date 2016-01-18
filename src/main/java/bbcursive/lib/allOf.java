@@ -16,11 +16,6 @@ public class allOf {
      * @return null if not bbcursive.lib.allOf match in sequence
      */
     public static UnaryOperator<ByteBuffer> allOf(UnaryOperator<ByteBuffer>... allOf) {
-        return new UnaryOperator<ByteBuffer>() {
-            @Override
-            public ByteBuffer apply(ByteBuffer target) {
-                return null == target ? null : std.bb(target, allOf);
-            }
-        };
+        return target -> null == target ? null : std.bb(target, allOf);
     }
 }
