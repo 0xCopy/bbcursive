@@ -2,7 +2,7 @@ package bbcursive;
 
 import java.nio.ByteBuffer;
 
-import static bbcursive.std.log;
+import static bbcursive.lib.log.log;
 
 /**
  * User: jim
