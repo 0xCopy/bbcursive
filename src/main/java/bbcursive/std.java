@@ -1,6 +1,5 @@
 package bbcursive;
 
-import bbcursive.lib.log;
 import com.databricks.fastbuffer.ByteBufferReader;
 import com.databricks.fastbuffer.JavaByteBufferReader;
 import com.databricks.fastbuffer.UnsafeDirectByteBufferReader;
@@ -67,7 +66,7 @@ public class std {
                     break;
             }
         }
-        if (r != null&&op!=null) log.log(op, "===", "@" + position);
+//        if (r != null&&op!=null) log.log(op, "===", "@" + position);
         return r;
     }
 
@@ -107,16 +106,11 @@ public class std {
      * @return
      */
     public static String str(ByteBuffer bytes, UnaryOperator<ByteBuffer>... operations) {
-        for (UnaryOperator<ByteBuffer> operation : operations) {
-            if (operation instanceof Cursive.pre) {
-                bytes = operation.apply(bytes);
-            }
-        }
-        String s = UTF_8.decode(bytes).toString();
-        for (UnaryOperator<ByteBuffer> operation : operations) {
-            if (!(operation instanceof Cursive.pre)) bytes = operation.apply(bytes);
-        }
-        return s;
+
+        ByteBuffer bb = defaultParser(bytes, operations);
+        return UTF_8.decode(bb).toString();
+
+
     }
 
     /**

@@ -34,15 +34,16 @@ public class log {
         if (0 < prefixSuffix.length)
             System.err.print(prefixSuffix[0] + "\t");
         if (ob instanceof ByteBuffer) {
-            std.defaultParser((ByteBuffer) ob, debug);
+            std.bb((ByteBuffer) ob, debug);
         } else if (ob instanceof WantsZeroCopy) {
             WantsZeroCopy wantsZeroCopy = (WantsZeroCopy) ob;
             std.bb(wantsZeroCopy.asByteBuffer(), debug);
         } else {
             std.bb(String.valueOf(ob), debug);
         }
-        if (hasSuffix)
+        if (hasSuffix) {
             System.err.println(prefixSuffix[1] + "\t");
+        }
         return true;
     }
 }

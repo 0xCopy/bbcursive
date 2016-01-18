@@ -16,7 +16,7 @@ public class anyOf {
             @Override
             public ByteBuffer apply(ByteBuffer b) {
                 for (UnaryOperator<ByteBuffer> o : anyOf) {
-                    ByteBuffer bb = std.defaultParser(b, o);
+                    ByteBuffer bb = std.bb(b, o);
                     if (null != bb) return bb;
                 }
                 return null;
