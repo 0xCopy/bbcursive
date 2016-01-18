@@ -1,11 +1,15 @@
 package bbcursive;
 
+import bbcursive.Cursive.pre;
+import bbcursive.ann.Backtracking;
+import bbcursive.ann.ForwardOnly;
+import bbcursive.lib.u8tf;
+import bbcursive.vtables._edge;
+import bbcursive.vtables._ptr;
 import com.databricks.fastbuffer.ByteBufferReader;
 import com.databricks.fastbuffer.JavaByteBufferReader;
 import com.databricks.fastbuffer.UnsafeDirectByteBufferReader;
 import com.databricks.fastbuffer.UnsafeHeapByteBufferReader;
-import bbcursive.vtables._edge;
-import bbcursive.vtables._ptr;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.ByteBuffer;
@@ -16,10 +20,9 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
-import static java.lang.ThreadLocal.withInitial;
+import static bbcursive.lib.pos.pos;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -34,10 +37,23 @@ public class std {
      * when you want to change the behaviors of the main IO parser, insert a new {@link BiFunction} to intercept
      * parameters and returns to fire events and clean up using {@link ThreadLocal#set(Object)}
      */
-    private static final InheritableThreadLocal<? extends BiFunction<ByteBuffer, UnaryOperator<ByteBuffer>[], ByteBuffer>> theParser = (InheritableThreadLocal<? extends BiFunction<ByteBuffer, UnaryOperator<ByteBuffer>[], ByteBuffer>>) withInitial((Supplier<BiFunction<ByteBuffer, UnaryOperator<ByteBuffer>[], ByteBuffer>>) () -> std::defaultParser);
-    public enum traits {debug,backtrackOnNull,skipWs;}
-    public static final InheritableThreadLocal<EnumMap<traits, Boolean>>flags=new InheritableThreadLocal<EnumMap<traits, Boolean>>(){{set(new EnumMap<>(traits.class));}};
-    public static InheritableThreadLocal<Consumer<_edge<_edge<EnumSet<traits>, UnaryOperator<ByteBuffer>>,_ptr>>> outbox =new InheritableThreadLocal<>();
+    public enum traits {
+        debug, backtrackOnNull, skipWs;
+    }
+
+    public static final ThreadLocal<EnumMap<traits, Boolean>> flags = new ThreadLocal<EnumMap<traits, Boolean>>() {{
+        set(new EnumMap<>(traits.class));
+    }};
+
+    /**
+     * in reverse order of resolution:
+     * <p>
+     * flags -- from annotations from lambda class
+     * UnaryOperator -- the lambda that fired,
+     * Integer -- length, to save time moving and scoring the artifact
+     * _ptr -- _edge[ByteBuffer,Integer] state pair
+     */
+    public static InheritableThreadLocal<Consumer<_edge<_edge<EnumSet<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>>> outbox = new InheritableThreadLocal<>();
 
 
     /**
@@ -50,35 +66,68 @@ public class std {
      * @return
      */
     public static ByteBuffer bb(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
-        return getTheParser().get().apply(b, ops);
+        return defaultParser(b, ops);
     }
+
 
     @Nullable
     public static ByteBuffer defaultParser(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
         ByteBuffer r = null;
-        UnaryOperator<ByteBuffer> op = null;
 
-        if (null != b) {
+        UnaryOperator<ByteBuffer> op = null;
+        if (null != b && ops.length > 0) {
+            op = ops[0];
+            Class<? extends UnaryOperator> aClass = op.getClass();
+            boolean skip = flags.get().get(traits.skipWs);
+            if (skip && null != pre.skipWs.apply(b)) ;
+            boolean backtrack = flags.get().get(traits.backtrackOnNull) || aClass.isAnnotationPresent(Backtracking.class) && !aClass.isAnnotationPresent(ForwardOnly.class);
+            int position = 0;
+            if (backtrack) {
+                position = b.position();
+            }
 
             switch (ops.length) {
                 case 0:
                     r = b;
                     break;
                 case 1:
-                    r = ops[0].apply(b);
+                    r = op.apply(b);
                     break;
                 default:
-                    op = ops[0];
-                    UnaryOperator<ByteBuffer>[] ops1 = Arrays.copyOfRange(ops, 1, ops.length);
-                    r = bb(op.apply(b), ops1);
+                    r = bb(op.apply(b), Arrays.copyOfRange(ops, 1, ops.length));
                     break;
             }
-        }
+            if (null == r && backtrack) {
+                r = bb(b, pos(position));
+            } else {
+                if (null != outbox.get()) {
+                    final int finalPosition = position;
+                    outbox.get().accept(new _edge<_edge<EnumSet<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>() {
+                        @Override
+                        protected _ptr at() {
+                            return r$();
+                        }
 
+                        @Override
+                        protected _ptr goTo(_ptr ptr) {
+                            return null;
+                        }
+
+                        @Override
+                        public _edge<EnumSet<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>> core(_edge<_edge<EnumSet<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>... e) {
+                            return super.core(e);
+                        }
+
+                        @Override
+                        protected _ptr r$() {
+                            return (_ptr) at().bind(b, finalPosition);
+                        }
+                    });
+                }
+            }
+        }
         return r;
     }
-
-
     public static <S extends WantsZeroCopy> ByteBuffer bb(S b, UnaryOperator<ByteBuffer>... ops) {
         ByteBuffer b1 = b.asByteBuffer();
         for (int i = 0, opsLength = ops.length; i < opsLength; i++) {
@@ -114,11 +163,8 @@ public class std {
      * @return
      */
     public static String str(ByteBuffer bytes, UnaryOperator<ByteBuffer>... operations) {
-
-        ByteBuffer bb = defaultParser(bytes, operations);
+        ByteBuffer bb = bb(bytes, operations);
         return UTF_8.decode(bb).toString();
-
-
     }
 
     /**
@@ -161,12 +207,7 @@ public class std {
      * @return
      */
     public static <T extends CharSequence> ByteBuffer bb(T src, UnaryOperator<ByteBuffer>... operations) {
-
-        ByteBuffer byteBuffer = UTF_8.encode(src.toString());
-        for (UnaryOperator<ByteBuffer> operation : operations) {
-            byteBuffer = operation.apply(byteBuffer);
-        }
-        return byteBuffer;
+        return bb(u8tf.c2b(String.valueOf(src)), operations);
     }
 
     public static ByteBuffer grow(ByteBuffer src) {
@@ -265,16 +306,6 @@ public class std {
         std.allocator = allocator;
     }
 
-    /**
-     * when you want to change the behaviors of the main IO parser, insert a new {@link BiFunction} to intercept
-     * parameters and returns to fire events and clean up using {@link ThreadLocal#set(Object)}
-     *
-     * @return a htradlocal with a lambda
-     */
-
-    public static ThreadLocal<BiFunction<ByteBuffer, UnaryOperator<ByteBuffer>[], ByteBuffer>> getTheParser() {
-        return std.getTheParser();
-    }
 
 }
 
