@@ -4,13 +4,18 @@ import com.databricks.fastbuffer.ByteBufferReader;
 import com.databricks.fastbuffer.JavaByteBufferReader;
 import com.databricks.fastbuffer.UnsafeDirectByteBufferReader;
 import com.databricks.fastbuffer.UnsafeHeapByteBufferReader;
+import bbcursive.vtables._edge;
+import bbcursive.vtables._ptr;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
@@ -29,8 +34,11 @@ public class std {
      * when you want to change the behaviors of the main IO parser, insert a new {@link BiFunction} to intercept
      * parameters and returns to fire events and clean up using {@link ThreadLocal#set(Object)}
      */
-    private static final ThreadLocal<BiFunction<ByteBuffer, UnaryOperator<ByteBuffer>[], ByteBuffer>> theParser =
-            withInitial((Supplier<BiFunction<ByteBuffer, UnaryOperator<ByteBuffer>[], ByteBuffer>>) () -> std::defaultParser);
+    private static final InheritableThreadLocal<? extends BiFunction<ByteBuffer, UnaryOperator<ByteBuffer>[], ByteBuffer>> theParser = (InheritableThreadLocal<? extends BiFunction<ByteBuffer, UnaryOperator<ByteBuffer>[], ByteBuffer>>) withInitial((Supplier<BiFunction<ByteBuffer, UnaryOperator<ByteBuffer>[], ByteBuffer>>) () -> std::defaultParser);
+    public enum traits {debug,backtrackOnNull,skipWs;}
+    public static final InheritableThreadLocal<EnumMap<traits, Boolean>>flags=new InheritableThreadLocal<EnumMap<traits, Boolean>>(){{set(new EnumMap<>(traits.class));}};
+    public static InheritableThreadLocal<Consumer<_edge<_edge<EnumSet<traits>, UnaryOperator<ByteBuffer>>,_ptr>>> outbox =new InheritableThreadLocal<>();
+
 
     /**
      * this is the main bytebuffer io parser most easily coded for.
@@ -49,15 +57,15 @@ public class std {
     public static ByteBuffer defaultParser(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
         ByteBuffer r = null;
         UnaryOperator<ByteBuffer> op = null;
-        int position = 0;
+
         if (null != b) {
-            position = b.position();
+
             switch (ops.length) {
                 case 0:
                     r = b;
                     break;
                 case 1:
-                    r = (op=ops[0]).apply(b);
+                    r = ops[0].apply(b);
                     break;
                 default:
                     op = ops[0];
@@ -66,7 +74,7 @@ public class std {
                     break;
             }
         }
-//        if (r != null&&op!=null) log.log(op, "===", "@" + position);
+
         return r;
     }
 
@@ -265,7 +273,7 @@ public class std {
      */
 
     public static ThreadLocal<BiFunction<ByteBuffer, UnaryOperator<ByteBuffer>[], ByteBuffer>> getTheParser() {
-        return theParser;
+        return std.getTheParser();
     }
 
 }
