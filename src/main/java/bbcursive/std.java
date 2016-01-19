@@ -67,7 +67,8 @@ public class std {
             Integer endPosition = operatorIntegerEdge.location();
             UnaryOperator<ByteBuffer> unaryOperator = operatorIntegerEdge.core();
 
-            System.err.println("+++ " + unaryOperator + " " + new Integer[]{startPosition, endPosition}.toString() + " " + traitsSet);
+            String s = Arrays.deepToString(new Integer[]{startPosition, endPosition});
+            System.err.println("+++ " + s+ unaryOperator + " " + s + " " + traitsSet);
 
         }
     });
