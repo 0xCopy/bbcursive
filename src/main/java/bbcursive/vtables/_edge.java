@@ -26,21 +26,6 @@ public abstract class _edge<coreType, addressType> {
 
     protected abstract addressType goTo(addressType addressType);
 
-    /**
-     * this is a single method mutator/emitter
-     *
-     * @param notnullorself new core
-     * @return the core being held now
-     */
-    private coreType theCore(coreType... notnullorself) {
-        switch (notnullorself.length) {
-            case 0:
-                return core;
-            default:
-                core = notnullorself[0];
-                return core;
-        }
-    }
 
 
     /**
@@ -50,7 +35,12 @@ public abstract class _edge<coreType, addressType> {
      * @return
      */
     public coreType core(_edge<coreType, addressType>... e) {
-        return e.length == 0 || this != e[0] ? bind(theCore(e[0].core()), e[0].location()).core() : core;
+        boolean empty = 0 == e.length;
+
+        boolean isMe = !empty&&this == e[0];
+
+        return !empty && !isMe ? core(bind(e[0].core(), e[0].location())) : core;
+
     }
 
     /**
@@ -66,11 +56,7 @@ public abstract class _edge<coreType, addressType> {
      * @return typically what is returned is what is passed in most recently to any of the Pair.second mutators (this.at, this.goto, this.location).
      */
     protected final addressType at(addressType... notnullorself) {
-        addressType addressType1 = notnullorself[0];
-        if (0 != notnullorself.length)
-            if (!Objects.equals(this, addressType1))
-                return goTo(addressType1);
-        return r$();
+        return 0 != notnullorself.length && !Objects.equals(this, notnullorself[0]) ? goTo(notnullorself[0]) : r$();
     }
 
     /**
@@ -87,8 +73,10 @@ public abstract class _edge<coreType, addressType> {
      * @return
      */
     public final addressType location(_edge<coreType, addressType>... e) {
-        _edge<coreType, addressType> coreTypeaddressType_edge;
-        return 0 == e.length || (coreTypeaddressType_edge = this) != e[0] ? bind((e[0].core()), at(e[0].location())).location() : coreTypeaddressType_edge.location();
+        _edge<coreType, addressType> subj = this;
+        boolean empty = 0 == e.length;
+        boolean alien = !empty &&subj != e[0];
+        return empty||!alien ? at() :bind(e[0].core(), at(e[0].location())).location();
     }
 
     /**
@@ -100,7 +88,7 @@ public abstract class _edge<coreType, addressType> {
      */
     public _edge<coreType, addressType> bind(coreType coreType
             , addressType address) {
-        theCore(coreType);
+        core= (coreType);
         at(address);
         return this;
     }

@@ -1,6 +1,5 @@
 package bbcursive;
 
-import bbcursive.Cursive.pre;
 import bbcursive.ann.Backtracking;
 import bbcursive.ann.ForwardOnly;
 import bbcursive.lib.u8tf;
@@ -10,20 +9,22 @@ import com.databricks.fastbuffer.ByteBufferReader;
 import com.databricks.fastbuffer.JavaByteBufferReader;
 import com.databricks.fastbuffer.UnsafeDirectByteBufferReader;
 import com.databricks.fastbuffer.UnsafeHeapByteBufferReader;
-import org.jetbrains.annotations.Nullable;
 
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
+import static bbcursive.Cursive.pre.skipWs;
 import static bbcursive.lib.pos.pos;
 import static java.lang.Character.isDigit;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.stream.Collectors.toSet;
 
 
 /**
@@ -40,9 +41,7 @@ public class std {
         debug, backtrackOnNull, skipWs;
     }
 
-    public static final InheritableThreadLocal<Map<traits, Boolean>> flags = new InheritableThreadLocal<Map<traits, Boolean>>(){{
-        set(new EnumMap<>(traits.class));
-    }};
+    public static final  ThreadLocal<Map<traits, Boolean>> flags = ThreadLocal.withInitial((Supplier<Map<traits, Boolean>>) ()->new EnumMap<traits, Boolean>(traits.class));
 
     /**
      * the outbox -- when a parse term successfully returns and a {@link Consumer}is installed as the outbox the
@@ -70,25 +69,26 @@ public class std {
      * @return
      */
     public static ByteBuffer bb(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
-        return defaultParser(b, ops);
-    }
-
-
-    @Nullable
-    public static ByteBuffer defaultParser(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
         ByteBuffer r = null;
 
         UnaryOperator<ByteBuffer> op = null;
         if (null != b && ops.length > 0) {
             op = ops[0];
             Class<? extends UnaryOperator> aClass = op.getClass();
-            boolean skip = flags.get().get(traits.skipWs);
-            if (skip && null != pre.skipWs.apply(b)) ;
-            boolean backtrack = flags.get().get(traits.backtrackOnNull) || aClass.isAnnotationPresent(Backtracking.class) && !aClass.isAnnotationPresent(ForwardOnly.class);
-            int startPosition = 0;
-            if (backtrack) {
-                startPosition = b.position();
-            }
+            Map<traits, Boolean> traitsBooleanMap = flags.get();
+            int startPosition;
+            startPosition = b.position();
+            boolean skip = Objects.equals(traitsBooleanMap.get(traits.skipWs), Boolean.TRUE);
+            if (skip && null == skipWs.apply(b))
+                assert b.position()==startPosition:"skipws is corrupting the cursor";
+            boolean backtrack;
+            if (Objects.equals(Boolean.TRUE, traitsBooleanMap.get(traits.backtrackOnNull)))
+                backtrack = true;
+            else if (aClass.isAnnotationPresent(Backtracking.class))
+                if (!aClass.isAnnotationPresent(ForwardOnly.class))
+                    backtrack = true;
+                else backtrack = false;
+            else backtrack = false;
             switch (ops.length) {
                 case 0:
                     r = b;
@@ -106,12 +106,12 @@ public class std {
 
                 int startPosition2 = startPosition;
 
-                final ByteBuffer b1 = b;
                 final UnaryOperator<ByteBuffer> finalOp = op;
-                final Set<traits> immutableTraits = flags.get().entrySet().stream().filter(traitsBooleanEntry -> traitsBooleanEntry.getValue()).map(traitsBooleanEntry -> traitsBooleanEntry.getKey()).collect(Collectors.toSet());
+                final Set<traits> immutableTraits = traitsBooleanMap.entrySet().stream().filter(Entry::getValue).map(Entry::getKey).collect(toSet());
 
+                final int finalStartPosition = startPosition;
                 outbox.get().accept(new _edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>() {
-                    ;
+
 
                     @Override
                     protected _ptr at() {
@@ -125,7 +125,7 @@ public class std {
 
                     @Override
                     protected _ptr r$() {
-                        return (_ptr) at().bind(b1, startPosition2);
+                        return (_ptr) new _ptr().bind(b, finalStartPosition);
                     }
 
                     @Override
@@ -177,6 +177,8 @@ public class std {
         }
         return r;
     }
+
+
     public static <S extends WantsZeroCopy> ByteBuffer bb(S b, UnaryOperator<ByteBuffer>... ops) {
         ByteBuffer b1 = b.asByteBuffer();
         for (int i = 0, opsLength = ops.length; i < opsLength; i++) {

@@ -6,7 +6,7 @@ import java.util.function.UnaryOperator;
 /**
  * Created by jim on 1/17/16.
  */
-public class chlit {
+public class chlit_ {
     public static UnaryOperator<ByteBuffer> chlit(char c) {
         return new UnaryOperator<ByteBuffer>() {
             @Override

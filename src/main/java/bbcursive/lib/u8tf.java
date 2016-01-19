@@ -9,6 +9,11 @@ import java.nio.charset.StandardCharsets;
 public enum u8tf {
     ;
 
+    /**
+     * utf8 encoder macro
+     * @param charseq
+     * @return
+     */
     public static ByteBuffer c2b(String charseq) {
         return StandardCharsets.UTF_8.encode(charseq);
     }

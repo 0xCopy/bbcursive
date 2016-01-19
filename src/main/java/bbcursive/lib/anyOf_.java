@@ -10,7 +10,7 @@ import static java.util.Arrays.binarySearch;
 /**
  * Created by jim on 1/17/16.
  */
-public class anyOf {
+public class anyOf_ {
     public static UnaryOperator<ByteBuffer> anyOf(UnaryOperator<ByteBuffer>... anyOf) {
         return new UnaryOperator<ByteBuffer>() {
             @Override

@@ -2,9 +2,6 @@ package bbcursive.vtables;
 
 import java.nio.ByteBuffer;
 
-import static bbcursive.lib.pos.pos;
-import static bbcursive.std.bb;
-
 /**
  * pointer class -- approximation of c++ '*'
  * <p>
@@ -26,7 +23,8 @@ public class _ptr extends _edge<ByteBuffer, Integer> {
      */
     @Override
     protected Integer goTo(Integer integer) {
-        return bb(core(), pos(integer)).position();
+        core().position(integer);
+        return integer;
     }
 
     @Override
