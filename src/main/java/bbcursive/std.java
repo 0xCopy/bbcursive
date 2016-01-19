@@ -13,16 +13,15 @@ import com.databricks.fastbuffer.UnsafeHeapByteBufferReader;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.EnumMap;
-import java.util.EnumSet;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 import static bbcursive.lib.pos.pos;
+import static java.lang.Character.isDigit;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -41,11 +40,14 @@ public class std {
         debug, backtrackOnNull, skipWs;
     }
 
-    public static final ThreadLocal<EnumMap<traits, Boolean>> flags = new ThreadLocal<EnumMap<traits, Boolean>>() {{
+    public static final InheritableThreadLocal<Map<traits, Boolean>> flags = new InheritableThreadLocal<Map<traits, Boolean>>(){{
         set(new EnumMap<>(traits.class));
     }};
 
     /**
+     * the outbox -- when a parse term successfully returns and a {@link Consumer}is installed as the outbox the
+     * following state is published allowing for a recreation of the event elsewhere within the jvm
+     *
      * in reverse order of resolution:
      * <p>
      * flags -- from annotations from lambda class
@@ -53,7 +55,9 @@ public class std {
      * Integer -- length, to save time moving and scoring the artifact
      * _ptr -- _edge[ByteBuffer,Integer] state pair
      */
-    public static InheritableThreadLocal<Consumer<_edge<_edge<EnumSet<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>>> outbox = new InheritableThreadLocal<>();
+    public static InheritableThreadLocal<Consumer<_edge<_edge< Set<traits>,
+            _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>>>
+            outbox = new InheritableThreadLocal<>();
 
 
     /**
@@ -81,11 +85,10 @@ public class std {
             boolean skip = flags.get().get(traits.skipWs);
             if (skip && null != pre.skipWs.apply(b)) ;
             boolean backtrack = flags.get().get(traits.backtrackOnNull) || aClass.isAnnotationPresent(Backtracking.class) && !aClass.isAnnotationPresent(ForwardOnly.class);
-            int position = 0;
+            int startPosition = 0;
             if (backtrack) {
-                position = b.position();
+                startPosition = b.position();
             }
-
             switch (ops.length) {
                 case 0:
                     r = b;
@@ -98,32 +101,78 @@ public class std {
                     break;
             }
             if (null == r && backtrack) {
-                r = bb(b, pos(position));
-            } else {
-                if (null != outbox.get()) {
-                    final int finalPosition = position;
-                    outbox.get().accept(new _edge<_edge<EnumSet<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>() {
-                        @Override
-                        protected _ptr at() {
-                            return r$();
-                        }
+                r = bb(b, pos(startPosition));
+            } else if (null != outbox.get()) {
 
-                        @Override
-                        protected _ptr goTo(_ptr ptr) {
-                            return null;
-                        }
+                int startPosition2 = startPosition;
 
-                        @Override
-                        public _edge<EnumSet<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>> core(_edge<_edge<EnumSet<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>... e) {
-                            return super.core(e);
-                        }
+                final ByteBuffer b1 = b;
+                final UnaryOperator<ByteBuffer> finalOp = op;
+                final Set<traits> immutableTraits = flags.get().entrySet().stream().filter(traitsBooleanEntry -> traitsBooleanEntry.getValue()).map(traitsBooleanEntry -> traitsBooleanEntry.getKey()).collect(Collectors.toSet());
 
-                        @Override
-                        protected _ptr r$() {
-                            return (_ptr) at().bind(b, finalPosition);
-                        }
-                    });
-                }
+                outbox.get().accept(new _edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>() {
+                    ;
+
+                    @Override
+                    protected _ptr at() {
+                        return r$();
+                    }
+
+                    @Override
+                    protected _ptr goTo(_ptr ptr) {
+                        throw new Error("trifling with an immutable pointer");
+                    }
+
+                    @Override
+                    protected _ptr r$() {
+                        return (_ptr) at().bind(b1, startPosition2);
+                    }
+
+                    @Override
+                    public _edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>> core(_edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>... e) {
+                        return new _edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>() {
+                            @Override
+                            public Set<traits> core(_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>... e) {
+                                return immutableTraits;
+                            }
+
+                            @Override
+                            protected _edge<UnaryOperator<ByteBuffer>, Integer> at() {
+                                return r$();
+                            }
+
+                            @Override
+                            protected _edge<UnaryOperator<ByteBuffer>, Integer> goTo(_edge<UnaryOperator<ByteBuffer>, Integer> unaryOperatorInteger_edge) {
+                                throw new Error("cant move this");
+                            }
+
+                            @Override
+                            protected _edge<UnaryOperator<ByteBuffer>, Integer> r$() {
+                                return new _edge<UnaryOperator<ByteBuffer>, Integer>() {
+                                    @Override
+                                    protected Integer at() {
+                                        return r$();
+                                    }
+
+                                    @Override
+                                    protected Integer goTo(Integer integer) {
+                                        throw new Error("immutable");
+                                    }
+
+                                    @Override
+                                    public UnaryOperator<ByteBuffer> core(_edge<UnaryOperator<ByteBuffer>, Integer>... e) {
+                                        return finalOp;
+                                    }
+
+                                    @Override
+                                    protected Integer r$() {
+                                        return startPosition2;
+                                    }
+                                };
+                            }
+                        };
+                    }
+                });
             }
         }
         return r;
@@ -278,7 +327,7 @@ public class std {
         boolean etoken = false;
         boolean esign = false;
         while (slice.hasRemaining()) {
-            while (slice.hasRemaining() && Character.isDigit(b = ((ByteBuffer) slice.mark()).get())) ;
+            while (slice.hasRemaining() && isDigit(b = ((ByteBuffer) slice.mark()).get())) ;
             switch (b) {
                 case '.':
                     assert !dot : "extra dot";
@@ -292,7 +341,7 @@ public class std {
                     assert !esign : "bad exponent sign";
                     esign = true;
                 default:
-                    if (!Character.isDigit(b)) return (ByteBuffer) slice.reset();
+                    if (!isDigit(b)) return (ByteBuffer) slice.reset();
             }
         }
         return null;
@@ -308,4 +357,3 @@ public class std {
 
 
 }
-
