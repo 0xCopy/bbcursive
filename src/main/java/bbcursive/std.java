@@ -2,6 +2,8 @@ package bbcursive;
 
 import bbcursive.ann.Backtracking;
 import bbcursive.ann.ForwardOnly;
+import bbcursive.ann.Infix;
+import bbcursive.ann.Skipper;
 import bbcursive.lib.u8tf;
 import bbcursive.vtables._edge;
 import bbcursive.vtables._ptr;
@@ -12,7 +14,7 @@ import com.databricks.fastbuffer.UnsafeHeapByteBufferReader;
 
 import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -24,7 +26,8 @@ import static bbcursive.lib.pos.pos;
 import static java.lang.Character.isDigit;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.stream.Collectors.toSet;
+import static java.util.EnumSet.copyOf;
+import static java.util.EnumSet.noneOf;
 
 
 /**
@@ -34,19 +37,9 @@ public class std {
     private static Allocator allocator;
 
     /**
-     * when you want to change the behaviors of the main IO parser, insert a new {@link BiFunction} to intercept
-     * parameters and returns to fire events and clean up using {@link ThreadLocal#set(Object)}
-     */
-    public enum traits {
-        debug, backtrackOnNull, skipWs;
-    }
-
-    public static final  ThreadLocal<Map<traits, Boolean>> flags = ThreadLocal.withInitial((Supplier<Map<traits, Boolean>>) ()->new EnumMap<traits, Boolean>(traits.class));
-
-    /**
      * the outbox -- when a parse term successfully returns and a {@link Consumer}is installed as the outbox the
      * following state is published allowing for a recreation of the event elsewhere within the jvm
-     *
+     * <p>
      * in reverse order of resolution:
      * <p>
      * flags -- from annotations from lambda class
@@ -54,7 +47,26 @@ public class std {
      * Integer -- length, to save time moving and scoring the artifact
      * _ptr -- _edge[ByteBuffer,Integer] state pair
      */
-    public static InheritableThreadLocal<Consumer<_edge<_edge< Set<traits>,
+    public static InheritableThreadLocal<Consumer<_edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>>> getOutbox() {
+        return outbox;
+    }
+
+    public static void setOutbox(InheritableThreadLocal<Consumer<_edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>>> outbox) {
+        std.outbox = outbox;
+    }
+
+    /**
+     * when you want to change the behaviors of the main IO parser, insert a new {@link BiFunction} to intercept
+     * parameters and returns to fire events and clean up using {@link ThreadLocal#set(Object)}
+     */
+    public enum traits {
+        debug, backtrackOnNull, skipWs;
+    }
+
+    public static final ThreadLocal<Set<traits>> flags = ThreadLocal.withInitial((Supplier<? extends Set<traits>>) () -> noneOf(traits.class));
+
+
+    private static InheritableThreadLocal<Consumer<_edge<_edge<Set<traits>,
             _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>>>
             outbox = new InheritableThreadLocal<>();
 
@@ -70,49 +82,35 @@ public class std {
      */
     public static ByteBuffer bb(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
         ByteBuffer r = null;
-
         UnaryOperator<ByteBuffer> op = null;
-        if (null != b && ops.length > 0) {
-            op = ops[0];
-            Class<? extends UnaryOperator> aClass = op.getClass();
-            Map<traits, Boolean> traitsBooleanMap = flags.get();
-            int startPosition;
-            startPosition = b.position();
-            boolean skip = Objects.equals(traitsBooleanMap.get(traits.skipWs), Boolean.TRUE);
-            if (skip && null == skipWs.apply(b))
-                assert b.position()==startPosition:"skipws is corrupting the cursor";
-            boolean backtrack;
-            if (Objects.equals(Boolean.TRUE, traitsBooleanMap.get(traits.backtrackOnNull)))
-                backtrack = true;
-            else if (aClass.isAnnotationPresent(Backtracking.class))
-                if (!aClass.isAnnotationPresent(ForwardOnly.class))
-                    backtrack = true;
-                else backtrack = false;
-            else backtrack = false;
+        Set<traits> restoration = null  ;
+        if (null != b && 0 < ops.length) {
+            UnaryOperator<ByteBuffer> byteBufferUnaryOperator = ops[0];
+            int startPosition = b.position();
+            Class<? extends UnaryOperator> aClass = byteBufferUnaryOperator.getClass();
+            restoration = memoizeFlags(aClass);
+            if (flags.get().contains(traits.skipWs) && b.hasRemaining()) {
+                skipWs.apply(b);
+            }
             switch (ops.length) {
                 case 0:
                     r = b;
                     break;
                 case 1:
-                    r = op.apply(b);
+                    r = byteBufferUnaryOperator.apply(b);
                     break;
                 default:
-                    r = bb(op.apply(b), Arrays.copyOfRange(ops, 1, ops.length));
+                    r = bb(byteBufferUnaryOperator.apply(b), Arrays.copyOfRange(ops, 1, ops.length));
                     break;
             }
-            if (null == r && backtrack) {
+
+            if (null == r && flags.get().contains(traits.backtrackOnNull)) {
                 r = bb(b, pos(startPosition));
-            } else if (null != outbox.get()) {
-
-                int startPosition2 = startPosition;
-
-                final UnaryOperator<ByteBuffer> finalOp = op;
-                final Set<traits> immutableTraits = traitsBooleanMap.entrySet().stream().filter(Entry::getValue).map(Entry::getKey).collect(toSet());
-
-                final int finalStartPosition = startPosition;
-                outbox.get().accept(new _edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>() {
-
-
+            } else if (null != getOutbox().get()) {
+                UnaryOperator<ByteBuffer> finalOp = byteBufferUnaryOperator;
+                Set<traits> immutableTraits = copyOf(flags.get());
+                int finalStartPosition = startPosition;
+                getOutbox().get().accept(new _edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>() {
                     @Override
                     protected _ptr at() {
                         return r$();
@@ -166,7 +164,7 @@ public class std {
 
                                     @Override
                                     protected Integer r$() {
-                                        return startPosition2;
+                                        return startPosition;
                                     }
                                 };
                             }
@@ -174,8 +172,49 @@ public class std {
                     }
                 });
             }
+
         }
+        if (restoration != null) flags.set(restoration);
         return r;
+    }
+
+
+    static Map<Class, Set<traits>> termCache = new WeakHashMap<>();
+
+    /**
+     * cache terminal flags and use them by class.
+     * <p>
+     * if class is gc'd, no leak.
+     *
+     * @param aClass
+     * @return the previous (restoration) state
+     */
+    static Set<traits> memoizeFlags(Class<? extends UnaryOperator> aClass) {
+        Set<traits> c = flags.get();
+        Set<traits> traitses = copyOf(c);
+        AtomicBoolean dirty = new AtomicBoolean(false);
+        flags.set(termCache.computeIfAbsent(aClass, aclass1 -> {
+            if (aClass.isAnnotationPresent(Skipper.class)) {
+                dirty.set(true);
+                c.add(traits.skipWs);
+            }
+            if (aClass.isAnnotationPresent(Infix.class)) {
+                dirty.set(true);
+                c.remove(traits.skipWs);
+            }
+            if (aClass.isAnnotationPresent(Backtracking.class)) {
+                dirty.set(true);
+                c.add(traits.backtrackOnNull);
+            }
+            if (aClass.isAnnotationPresent(ForwardOnly.class)) {
+                dirty.set(true);
+                c.remove(traits.backtrackOnNull);
+            }
+            return c;
+        }));
+
+
+        return !dirty.get() ? null : traitses;
     }
 
 
@@ -199,7 +238,11 @@ public class std {
     public static ByteBufferReader fast(ByteBuffer buf) {
         ByteBufferReader r;
         try {
-            r = buf.hasArray() ? new UnsafeHeapByteBufferReader(buf) : new UnsafeDirectByteBufferReader(buf);
+            if (buf.hasArray())
+                r = new UnsafeHeapByteBufferReader(buf);
+            else
+                r = new UnsafeDirectByteBufferReader(buf);
+
         } catch (UnsupportedOperationException e) {
             r = new JavaByteBufferReader(buf);
         }

@@ -1,29 +1,25 @@
 package bbcursive.lib;
 
-import bbcursive.std;
+import bbcursive.ann.Backtracking;
 
 import java.nio.ByteBuffer;
 import java.util.function.UnaryOperator;
 
+import static bbcursive.std.bb;
 import static java.util.Arrays.binarySearch;
+import static java.util.Arrays.stream;
 
 /**
  * Created by jim on 1/17/16.
  */
 public class anyOf_ {
     public static UnaryOperator<ByteBuffer> anyOf(UnaryOperator<ByteBuffer>... anyOf) {
-        return new UnaryOperator<ByteBuffer>() {
-            @Override
-            public ByteBuffer apply(ByteBuffer b) {
-                for (UnaryOperator<ByteBuffer> o : anyOf) {
-                    ByteBuffer bb = std.bb(b, o);
-                    if (null != bb) return bb;
-                }
-                return null;
-            }
+        return b -> {
+            stream(anyOf).anyMatch(byteBufferUnaryOperator -> null != bb(b, byteBufferUnaryOperator));
+            return b;
         };
     }
-
+    @Backtracking
     public static UnaryOperator<ByteBuffer> anyOf(CharSequence s) {
         int[] ints = s.chars().sorted().toArray();
         return new UnaryOperator<ByteBuffer>() {

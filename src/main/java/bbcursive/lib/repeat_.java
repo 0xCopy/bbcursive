@@ -1,5 +1,7 @@
 package bbcursive.lib;
 
+import bbcursive.ann.Backtracking;
+import bbcursive.ann.Skipper;
 import bbcursive.std;
 import org.jetbrains.annotations.NotNull;
 
@@ -15,7 +17,7 @@ public enum repeat_ {;
 
         return new ByteBufferUnaryOperator(op);
     }
-
+@Skipper@Backtracking
     private static class ByteBufferUnaryOperator implements UnaryOperator<ByteBuffer> {
         private final UnaryOperator<ByteBuffer> op;
 
