@@ -47,28 +47,41 @@ public class std {
      * Integer -- length, to save time moving and scoring the artifact
      * _ptr -- _edge[ByteBuffer,Integer] state pair
      */
-    public static InheritableThreadLocal<Consumer<_edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>>> getOutbox() {
-        return outbox;
-    }
 
-    public static void setOutbox(InheritableThreadLocal<Consumer<_edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>>> outbox) {
-        std.outbox = outbox;
-    }
 
+
+    private static ThreadLocal<Consumer<_edge<_edge<Set<traits>,
+            _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>>>
+            outbox = ThreadLocal.withInitial(() -> new Consumer<_edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>>() {
+        @Override
+        public void accept(_edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr> edge_ptr_edge) {
+            // shake the tree in intellij.  exhaust core(), location() fanout for a representational constant
+            // automate later.
+            _edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr> edge_ptr_edge1 = edge_ptr_edge;
+            _ptr location = edge_ptr_edge1.location();
+            Integer startPosition = location.location();
+            ByteBuffer byteBuffer = location.core();
+            _edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>> set_edge_edge = edge_ptr_edge1.core();
+            Set<traits> traitsSet = set_edge_edge.core();
+            _edge<UnaryOperator<ByteBuffer>, Integer> operatorIntegerEdge = set_edge_edge.location();
+            Integer endPosition = operatorIntegerEdge.location();
+            UnaryOperator<ByteBuffer> unaryOperator = operatorIntegerEdge.core();
+
+            System.err.println("+++ " + unaryOperator + " " + new Integer[]{startPosition, endPosition}.toString() + " " + traitsSet);
+
+        }
+    });
     /**
      * when you want to change the behaviors of the main IO parser, insert a new {@link BiFunction} to intercept
      * parameters and returns to fire events and clean up using {@link ThreadLocal#set(Object)}
      */
     public enum traits {
         debug, backtrackOnNull, skipWs;
+
     }
 
+
     public static final ThreadLocal<Set<traits>> flags = ThreadLocal.withInitial((Supplier<? extends Set<traits>>) () -> noneOf(traits.class));
-
-
-    private static InheritableThreadLocal<Consumer<_edge<_edge<Set<traits>,
-            _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>>>
-            outbox = new InheritableThreadLocal<>();
 
 
     /**
@@ -106,11 +119,11 @@ public class std {
 
             if (null == r && flags.get().contains(traits.backtrackOnNull)) {
                 r = bb(b, pos(startPosition));
-            } else if (null != getOutbox().get()) {
+            } else if (null != outbox.get()) {
                 UnaryOperator<ByteBuffer> finalOp = byteBufferUnaryOperator;
                 Set<traits> immutableTraits = copyOf(flags.get());
                 int finalStartPosition = startPosition;
-                getOutbox().get().accept(new _edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>() {
+                outbox.get().accept(new _edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>() {
                     @Override
                     protected _ptr at() {
                         return r$();

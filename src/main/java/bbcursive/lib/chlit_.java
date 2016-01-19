@@ -1,5 +1,7 @@
 package bbcursive.lib;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.nio.ByteBuffer;
 import java.util.function.UnaryOperator;
 
@@ -9,20 +11,22 @@ import java.util.function.UnaryOperator;
 public class chlit_ {
     public static UnaryOperator<ByteBuffer> chlit(char c) {
         return new UnaryOperator<ByteBuffer>() {
+            @Nullable
             @Override
             public ByteBuffer apply(ByteBuffer buf) {
-                if (null != buf)
-                    if (buf.hasRemaining()) {
-                        byte b = ((ByteBuffer) buf.mark()).get();
-                        if ((c & 0xffff) == (b & 0xff))
-                            return buf;
-                        else
-                            return null;
-                    }
-                    else
-                        return null;
-                else
+                if (null == buf) {
                     return null;
+                }
+                if (buf.hasRemaining()) {
+                    byte b = ((ByteBuffer) buf.mark()).get();
+                    if ((c & 0xff) == (b & 0xff))
+                        return buf;
+                    return null;
+                }
+                return null;
+
+
+
             }
         };
     }
