@@ -30,10 +30,15 @@ public enum repeat_ {;
             ByteBuffer control = null;
             ByteBuffer trailing = byteBuffer;
             ByteBuffer result;
+            int mark;
             do {
                 result = control;
+                mark = trailing.position();
                 trailing = control = std.bb(trailing, op);
             } while ((null != control) && byteBuffer.hasRemaining());
+
+            if (null != result)
+                result.position(mark);
             return result;
         }
     }

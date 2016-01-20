@@ -107,7 +107,6 @@ public class std {
                 if(null == skipWs.apply(b)){
                     b.reset();
                 };
-
             }
             switch (ops.length) {
                 case 0:
@@ -389,6 +388,7 @@ public class std {
         boolean dot = false;
         boolean etoken = false;
         boolean esign = false;
+        ByteBuffer r = null;
         while (slice.hasRemaining()) {
             while (slice.hasRemaining() && isDigit(b = ((ByteBuffer) slice.mark()).get())) ;
             switch (b) {
@@ -404,10 +404,10 @@ public class std {
                     assert !esign : "bad exponent sign";
                     esign = true;
                 default:
-                    if (!isDigit(b)) return (ByteBuffer) slice.reset();
+                    if (!isDigit(b)) r= (ByteBuffer) slice.reset();break;
             }
         }
-        return null;
+        return r;
     }
 
     public static Allocator getAllocator() {
