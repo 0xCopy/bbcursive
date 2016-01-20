@@ -20,8 +20,12 @@ public class pos implements UnaryOperator<ByteBuffer> {
      * @return
      */
     public static UnaryOperator<ByteBuffer> pos(int position) {
-        return new pos(position);
-
+        return new pos(position){
+            @Override
+            public String toString() {
+                return "pos("+position+")";
+            }
+        };
     }
 
     @Override

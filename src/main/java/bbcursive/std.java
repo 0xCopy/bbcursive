@@ -55,7 +55,7 @@ public class std {
             outbox = ThreadLocal.withInitial(() -> new Consumer<_edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>>() {
         @Override
         public void accept(_edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr> edge_ptr_edge) {
-            // shake the tree in intellij.  exhaust core(), location() fanout for a representational constant
+            // exhaust core()+location() fanout in intellij for a representational constant
             // automate later.
             _edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr> edge_ptr_edge1 = edge_ptr_edge;
             _ptr location = edge_ptr_edge1.location();
@@ -68,7 +68,7 @@ public class std {
             UnaryOperator<ByteBuffer> unaryOperator = operatorIntegerEdge.core();
 
             String s = Arrays.deepToString(new Integer[]{startPosition, endPosition});
-            System.err.println("+++ " + s+ unaryOperator + " " + s + " " + traitsSet);
+            System.err.println("+++ " + s+ unaryOperator + " " +  traitsSet);
 
         }
     });
@@ -87,8 +87,8 @@ public class std {
 
     /**
      * this is the main bytebuffer io parser most easily coded for.
-     * <p>
-     * when you want to change the behaviors of the IO parser, insert a new
+
+
      *
      * @param b   the bytebuffer
      * @param ops
@@ -100,11 +100,14 @@ public class std {
         Set<traits> restoration = null  ;
         if (null != b && 0 < ops.length) {
             UnaryOperator<ByteBuffer> byteBufferUnaryOperator = ops[0];
-            int startPosition = b.position();
+            final  int startPosition = b.position();
             Class<? extends UnaryOperator> aClass = byteBufferUnaryOperator.getClass();
             restoration = memoizeFlags(aClass);
             if (flags.get().contains(traits.skipWs) && b.hasRemaining()) {
-                skipWs.apply(b);
+                if(null == skipWs.apply(b)){
+                    b.reset();
+                };
+
             }
             switch (ops.length) {
                 case 0:
@@ -124,6 +127,7 @@ public class std {
                 UnaryOperator<ByteBuffer> finalOp = byteBufferUnaryOperator;
                 Set<traits> immutableTraits = copyOf(flags.get());
                 int finalStartPosition = startPosition;
+                int endPos = b.position();
                 outbox.get().accept(new _edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>() {
                     @Override
                     protected _ptr at() {
@@ -178,7 +182,7 @@ public class std {
 
                                     @Override
                                     protected Integer r$() {
-                                        return startPosition;
+                                        return endPos;
                                     }
                                 };
                             }

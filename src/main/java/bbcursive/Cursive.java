@@ -96,8 +96,8 @@ public interface Cursive extends UnaryOperator<ByteBuffer>{
       public ByteBuffer apply(ByteBuffer target) {
         boolean rem,captured = false;
         boolean r;
-        while ((rem=target.hasRemaining()) && (captured|=(r=Character.isWhitespace( 0xff&((ByteBuffer) target.mark()).get())))&&r);
-        return captured&&rem ? (ByteBuffer) target.reset() :target;
+        while (rem=target.hasRemaining() && (captured|=(r=Character.isWhitespace( 0xff&((ByteBuffer) target.mark()).get())))&&r);
+        return captured&&rem ? (ByteBuffer) target.reset() :captured?target:null;
       }
     },
     toWs {

@@ -56,7 +56,8 @@ public abstract class _edge<coreType, addressType> {
      * @return typically what is returned is what is passed in most recently to any of the Pair.second mutators (this.at, this.goto, this.location).
      */
     protected final addressType at(addressType... notnullorself) {
-        return 0 != notnullorself.length && !Objects.equals(this, notnullorself[0]) ? goTo(notnullorself[0]) : r$();
+        addressType addressType1 = notnullorself[0];
+        return 0 != notnullorself.length && !Objects.equals(this, addressType1) ? goTo(addressType1) : r$();
     }
 
     /**

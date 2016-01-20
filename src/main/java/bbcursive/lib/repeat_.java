@@ -33,7 +33,7 @@ public enum repeat_ {;
             do {
                 result = control;
                 trailing = control = std.bb(trailing, op);
-            } while (null != control && byteBuffer.hasRemaining());
+            } while ((null != control) && byteBuffer.hasRemaining());
             return result;
         }
     }
