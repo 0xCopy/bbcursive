@@ -22,7 +22,6 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import static bbcursive.Cursive.pre.skipWs;
-import static bbcursive.lib.pos.pos;
 import static java.lang.Character.isDigit;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -100,7 +99,7 @@ public class std {
         Set<traits> restoration = null  ;
         if (null != b && 0 < ops.length) {
             UnaryOperator<ByteBuffer> byteBufferUnaryOperator = ops[0];
-            final  int startPosition = b.position();
+            int startPosition = b.position();
             Class<? extends UnaryOperator> aClass = byteBufferUnaryOperator.getClass();
             restoration = memoizeFlags(aClass);
             if (flags.get().contains(traits.skipWs) && b.hasRemaining()) {
@@ -121,78 +120,82 @@ public class std {
             }
 
             if (null == r && flags.get().contains(traits.backtrackOnNull)) {
-                r = bb(b, pos(startPosition));
-            } else if (null != outbox.get()) {
-                UnaryOperator<ByteBuffer> finalOp = byteBufferUnaryOperator;
-                Set<traits> immutableTraits = copyOf(flags.get());
-                int finalStartPosition = startPosition;
-                int endPos = b.position();
-                outbox.get().accept(new _edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>() {
+                r = (ByteBuffer) b.position(startPosition);
+            } else if (null != outbox.get())
+                onSuccess(b, byteBufferUnaryOperator, startPosition);
+
+        }
+        if (restoration != null)
+            flags.set(restoration);
+        return r;
+    }
+
+    static void onSuccess(final ByteBuffer b, UnaryOperator<ByteBuffer> byteBufferUnaryOperator, int startPosition) {
+        UnaryOperator<ByteBuffer> finalOp = byteBufferUnaryOperator;
+        Set<traits> immutableTraits = copyOf(flags.get());
+        int finalStartPosition = startPosition;
+        int endPos = b.position();
+        outbox.get().accept(new _edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>() {
+            @Override
+            protected _ptr at() {
+                return r$();
+            }
+
+            @Override
+            protected _ptr goTo(_ptr ptr) {
+                throw new Error("trifling with an immutable pointer");
+            }
+
+            @Override
+            protected _ptr r$() {
+                return (_ptr) new _ptr().bind(b, finalStartPosition);
+            }
+
+            @Override
+            public _edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>> core(_edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>... e) {
+                return new _edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>() {
                     @Override
-                    protected _ptr at() {
+                    public Set<traits> core(_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>... e) {
+                        return immutableTraits;
+                    }
+
+                    @Override
+                    protected _edge<UnaryOperator<ByteBuffer>, Integer> at() {
                         return r$();
                     }
 
                     @Override
-                    protected _ptr goTo(_ptr ptr) {
-                        throw new Error("trifling with an immutable pointer");
+                    protected _edge<UnaryOperator<ByteBuffer>, Integer> goTo(_edge<UnaryOperator<ByteBuffer>, Integer> unaryOperatorInteger_edge) {
+                        throw new Error("cant move this");
                     }
 
                     @Override
-                    protected _ptr r$() {
-                        return (_ptr) new _ptr().bind(b, finalStartPosition);
-                    }
-
-                    @Override
-                    public _edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>> core(_edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>... e) {
-                        return new _edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>() {
+                    protected _edge<UnaryOperator<ByteBuffer>, Integer> r$() {
+                        return new _edge<UnaryOperator<ByteBuffer>, Integer>() {
                             @Override
-                            public Set<traits> core(_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>... e) {
-                                return immutableTraits;
-                            }
-
-                            @Override
-                            protected _edge<UnaryOperator<ByteBuffer>, Integer> at() {
+                            protected Integer at() {
                                 return r$();
                             }
 
                             @Override
-                            protected _edge<UnaryOperator<ByteBuffer>, Integer> goTo(_edge<UnaryOperator<ByteBuffer>, Integer> unaryOperatorInteger_edge) {
-                                throw new Error("cant move this");
+                            protected Integer goTo(Integer integer) {
+                                throw new Error("immutable");
                             }
 
                             @Override
-                            protected _edge<UnaryOperator<ByteBuffer>, Integer> r$() {
-                                return new _edge<UnaryOperator<ByteBuffer>, Integer>() {
-                                    @Override
-                                    protected Integer at() {
-                                        return r$();
-                                    }
+                            public UnaryOperator<ByteBuffer> core(_edge<UnaryOperator<ByteBuffer>, Integer>... e) {
+                                return finalOp;
+                            }
 
-                                    @Override
-                                    protected Integer goTo(Integer integer) {
-                                        throw new Error("immutable");
-                                    }
-
-                                    @Override
-                                    public UnaryOperator<ByteBuffer> core(_edge<UnaryOperator<ByteBuffer>, Integer>... e) {
-                                        return finalOp;
-                                    }
-
-                                    @Override
-                                    protected Integer r$() {
-                                        return endPos;
-                                    }
-                                };
+                            @Override
+                            protected Integer r$() {
+                                return endPos;
                             }
                         };
                     }
-                });
+                };
             }
-
-        }
-        if (restoration != null) flags.set(restoration);
-        return r;
+        });
     }
 
 
