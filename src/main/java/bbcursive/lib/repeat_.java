@@ -27,15 +27,15 @@ public enum repeat_ {;
 
         @Override
         public ByteBuffer apply(ByteBuffer byteBuffer) {
-            ByteBuffer control = null;
+            ByteBuffer success = null;
             ByteBuffer trailing = byteBuffer;
             ByteBuffer result;
             int mark;
             do {
-                result = control;
+                result = success;
                 mark = trailing.position();
-                trailing = control = std.bb(trailing, op);
-            } while ((null != control) && byteBuffer.hasRemaining());
+                trailing = success = std.bb(trailing, op);
+            } while (byteBuffer.hasRemaining() && null != success);
 
             if (null != result)
                 result.position(mark);

@@ -1,15 +1,13 @@
 package bbcursive.lib;
 
-import bbcursive.ann.Backtracking;
 import bbcursive.ann.Infix;
-import bbcursive.ann.Skipper;
 
 import java.nio.ByteBuffer;
 import java.util.function.UnaryOperator;
 
 public enum infix_ {;
 
-    public static UnaryOperator<ByteBuffer> infix( ) {
+    public static UnaryOperator<ByteBuffer> infix(UnaryOperator<ByteBuffer>... allOf) {
 
         return new ByteBufferUnaryOperator();
 
