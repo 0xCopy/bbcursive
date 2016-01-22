@@ -8,9 +8,9 @@ import static bbcursive.std.bb;
 /**
  * Created by jim on 1/17/16.
  */
-public class opt {
-    public static UnaryOperator<ByteBuffer> opt(UnaryOperator<ByteBuffer>... allOrPrevious) {
-        return new ByteBufferUnaryOperator(allOrPrevious);
+public class opt_ {
+    public static UnaryOperator<ByteBuffer> opt(UnaryOperator<ByteBuffer>... unaryOperators) {
+        return new ByteBufferUnaryOperator(unaryOperators);
     }
 
     private static class ByteBufferUnaryOperator implements UnaryOperator<ByteBuffer> {

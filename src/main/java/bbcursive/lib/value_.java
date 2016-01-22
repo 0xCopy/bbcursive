@@ -9,7 +9,7 @@ import java.util.function.UnaryOperator;
 import static bbcursive.lib.anyOf_.anyOf;
 import static bbcursive.lib.chlit_.chlit;
 import static bbcursive.lib.infix_.infix;
-import static bbcursive.lib.opt.opt;
+import static bbcursive.lib.opt_.opt;
 import static bbcursive.lib.repeat_.repeat;
 
 /**
