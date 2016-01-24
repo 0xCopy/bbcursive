@@ -1,9 +1,5 @@
 package bbcursive;
 
-import bbcursive.ann.Backtracking;
-import bbcursive.ann.ForwardOnly;
-import bbcursive.ann.Infix;
-import bbcursive.ann.Skipper;
 import bbcursive.lib.u8tf;
 import bbcursive.vtables._edge;
 import bbcursive.vtables._ptr;
@@ -14,7 +10,6 @@ import com.databricks.fastbuffer.UnsafeHeapByteBufferReader;
 
 import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -25,6 +20,7 @@ import static bbcursive.Cursive.pre.skipWs;
 import static java.lang.Character.isDigit;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Arrays.deepToString;
 import static java.util.EnumSet.copyOf;
 import static java.util.EnumSet.noneOf;
 
@@ -33,6 +29,9 @@ import static java.util.EnumSet.noneOf;
  * Created by jim on 8/8/14.
  */
 public class std {
+
+
+    final private static boolean debug_bbcursive = Objects.equals("true", System.getenv("debug_bbcursive"));
     private static Allocator allocator;
 
     /**
@@ -46,9 +45,6 @@ public class std {
      * Integer -- length, to save time moving and scoring the artifact
      * _ptr -- _edge[ByteBuffer,Integer] state pair
      */
-
-
-
     private static ThreadLocal<Consumer<_edge<_edge<Set<traits>,
             _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>>>
             outbox = ThreadLocal.withInitial(() -> new Consumer<_edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>>() {
@@ -65,12 +61,12 @@ public class std {
             _edge<UnaryOperator<ByteBuffer>, Integer> operatorIntegerEdge = set_edge_edge.location();
             Integer endPosition = operatorIntegerEdge.location();
             UnaryOperator<ByteBuffer> unaryOperator = operatorIntegerEdge.core();
-
-            String s = Arrays.deepToString(new Integer[]{startPosition, endPosition});
-            System.err.println("+++ " + s+ unaryOperator + " " +  traitsSet);
+            String s = deepToString(new Integer[]{startPosition, endPosition});
+            System.err.println("+++ " + s + unaryOperator + " " + traitsSet);
 
         }
     });
+
     /**
      * when you want to change the behaviors of the main IO parser, insert a new {@link BiFunction} to intercept
      * parameters and returns to fire events and clean up using {@link ThreadLocal#set(Object)}
@@ -86,8 +82,6 @@ public class std {
 
     /**
      * this is the main bytebuffer io parser most easily coded for.
-
-
      *
      * @param b   the bytebuffer
      * @param ops
@@ -96,33 +90,36 @@ public class std {
     public static ByteBuffer bb(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
         ByteBuffer r = null;
         UnaryOperator<ByteBuffer> op = null;
-        Set<traits> restoration = null  ;
-        if (null != b && 0 < ops.length) {
-            UnaryOperator<ByteBuffer> byteBufferUnaryOperator = ops[0];
+        Set<traits> restoration = null;
+        if (null != b && 0 < ops.length && null != (op = ops[0])) {
+            if (debug_bbcursive) System.err.println("??? " + ops[0]);
             int startPosition = b.position();
-            Class<? extends UnaryOperator> aClass = byteBufferUnaryOperator.getClass();
-            restoration = memoizeFlags(aClass);
+            restoration = induct(op.getClass());
             if (flags.get().contains(traits.skipWs) && b.hasRemaining()) {
-                if(null == skipWs.apply(b)){
+                if (null == skipWs.apply(b)) {
                     b.reset();
-                };
+                }
+                ;
             }
             switch (ops.length) {
                 case 0:
                     r = b;
                     break;
                 case 1:
-                    r = byteBufferUnaryOperator.apply(b);
+                    r = op.apply(b);
                     break;
                 default:
-                    r = bb(byteBufferUnaryOperator.apply(b), Arrays.copyOfRange(ops, 1, ops.length));
+                    r = bb(op.apply(b), Arrays.copyOfRange(ops, 1, ops.length));
                     break;
             }
 
             if (null == r && flags.get().contains(traits.backtrackOnNull)) {
+                if (debug_bbcursive)
+                    System.err.println("--- " + deepToString(new Integer[]{startPosition, b.position()}) + " " + op.toString());
                 r = (ByteBuffer) b.position(startPosition);
+
             } else if (null != outbox.get())
-                onSuccess(b, byteBufferUnaryOperator, startPosition);
+                onSuccess(b, op, startPosition);
 
         }
         if (restoration != null)
@@ -209,32 +206,32 @@ public class std {
      * @param aClass
      * @return the previous (restoration) state
      */
-    static Set<traits> memoizeFlags(Class<? extends UnaryOperator> aClass) {
+    static Set<traits> induct(Class<? extends UnaryOperator> aClass) {
+        return null;
+/*
         Set<traits> c = flags.get();
         Set<traits> traitses = copyOf(c);
         AtomicBoolean dirty = new AtomicBoolean(false);
-        flags.set(termCache.computeIfAbsent(aClass, aclass1 -> {
-            if (aClass.isAnnotationPresent(Skipper.class)) {
-                dirty.set(true);
-                c.add(traits.skipWs);
-            }
-            if (aClass.isAnnotationPresent(Infix.class)) {
-                dirty.set(true);
-                c.remove(traits.skipWs);
-            }
-            if (aClass.isAnnotationPresent(Backtracking.class)) {
-                dirty.set(true);
-                c.add(traits.backtrackOnNull);
-            }
-            if (aClass.isAnnotationPresent(ForwardOnly.class)) {
-                dirty.set(true);
-                c.remove(traits.backtrackOnNull);
-            }
-            return c;
-        }));
+        if (aClass.isAnnotationPresent(Skipper.class)) {
+            dirty.set(true);
+            c.add(traits.skipWs);
+        }else
+        if (aClass.isAnnotationPresent(Infix.class)) {
+            dirty.set(true);
+            c.remove(traits.skipWs);
+        }
+        if (aClass.isAnnotationPresent(Backtracking.class)) {
+            dirty.set(true);
+            c.add(traits.backtrackOnNull);
+        }else
+        if (aClass.isAnnotationPresent(ForwardOnly.class)) {
+            dirty.set(true);
+            c.remove(traits.backtrackOnNull);
+        }
 
 
-        return !dirty.get() ? null : traitses;
+
+        return !dirty.get() ? null : traitses;*/
     }
 
 
@@ -407,7 +404,8 @@ public class std {
                     assert !esign : "bad exponent sign";
                     esign = true;
                 default:
-                    if (!isDigit(b)) r= (ByteBuffer) slice.reset();break;
+                    if (!isDigit(b)) r = (ByteBuffer) slice.reset();
+                    break;
             }
         }
         return r;

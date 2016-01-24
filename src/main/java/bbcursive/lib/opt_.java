@@ -1,6 +1,7 @@
 package bbcursive.lib;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.function.UnaryOperator;
 
 import static bbcursive.std.bb;
@@ -13,8 +14,13 @@ public class opt_ {
         return new ByteBufferUnaryOperator(unaryOperators);
     }
 
-    private static class ByteBufferUnaryOperator implements UnaryOperator<ByteBuffer> {
+    public static class ByteBufferUnaryOperator implements UnaryOperator<ByteBuffer> {
         private UnaryOperator<ByteBuffer>[] allOrPrevious;
+
+        @Override
+        public String toString() {return "opt:"+ Arrays.deepToString(allOrPrevious);
+
+        }
 
         public ByteBufferUnaryOperator(UnaryOperator<ByteBuffer>[] allOrPrevious) {
 

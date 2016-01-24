@@ -1,13 +1,12 @@
 package bbcursive.lib;
 
-import bbcursive.ann.Infix;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.ByteBuffer;
 import java.util.function.UnaryOperator;
 
 /**
- * Created by jim on 1/17/16.
+char literal
  */
 public class chlit_ {
     public static UnaryOperator<ByteBuffer> chlit(char c) {
@@ -18,7 +17,7 @@ public class chlit_ {
         return chlit(s.charAt(0));
     }
 
-    @Infix
+
     private static class ByteBufferUnaryOperator implements UnaryOperator<ByteBuffer> {
         private final char c;
 
@@ -32,7 +31,6 @@ public class chlit_ {
                     c+"'";
         }
 
-        @Infix
         @Nullable
         @Override
         public ByteBuffer apply(ByteBuffer buf) {

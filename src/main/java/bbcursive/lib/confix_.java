@@ -52,7 +52,8 @@ public class confix_ {
 
         @Override
         public String toString() {
-            return super.toString();
+            UnaryOperator[] a = {before, operator, after};
+            return "confix"+Arrays.deepToString(a);
         }
 
         @Override

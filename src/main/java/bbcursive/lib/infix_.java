@@ -1,7 +1,5 @@
 package bbcursive.lib;
 
-import bbcursive.ann.Infix;
-
 import java.nio.ByteBuffer;
 import java.util.function.UnaryOperator;
 
@@ -9,14 +7,17 @@ public enum infix_ {;
 
     public static UnaryOperator<ByteBuffer> infix(UnaryOperator<ByteBuffer>... allOf) {
 
-        return new ByteBufferUnaryOperator();
+        return new UnaryOperator<ByteBuffer>() {
+            @Override
+            public String toString() {
+                return "infix";
+            }
 
-    }
-@Infix
-    private static class ByteBufferUnaryOperator implements UnaryOperator<ByteBuffer> {
-        @Override
-        public ByteBuffer apply(ByteBuffer buffer) {
-            return buffer;
-        }
+            @Override
+            public ByteBuffer apply(ByteBuffer buffer) {
+                return buffer;
+            }
+        };
+
     }
 }
