@@ -9,7 +9,9 @@ import static bbcursive.std.bb;
 /**
  * Created by jim on 1/17/16.
  */
-public class opt_ {
+public enum opt_ {
+    ;
+
     public static UnaryOperator<ByteBuffer> opt(UnaryOperator<ByteBuffer>... unaryOperators) {
         return new ByteBufferUnaryOperator(unaryOperators);
     }
@@ -18,8 +20,8 @@ public class opt_ {
         private UnaryOperator<ByteBuffer>[] allOrPrevious;
 
         @Override
-        public String toString() {return "opt:"+ Arrays.deepToString(allOrPrevious);
-
+        public String toString() {
+            return "opt:" + Arrays.deepToString(allOrPrevious);
         }
 
         public ByteBufferUnaryOperator(UnaryOperator<ByteBuffer>[] allOrPrevious) {
@@ -31,7 +33,7 @@ public class opt_ {
         public ByteBuffer apply(ByteBuffer buffer) {
             int position = buffer.position();
             ByteBuffer r = bb(buffer, allOrPrevious);
-            if(null==r) {
+            if (null == r) {
                 buffer.position(position);
             }
             return buffer;

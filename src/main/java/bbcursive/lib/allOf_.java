@@ -10,7 +10,9 @@ import static java.util.Arrays.deepToString;
 /**
  * Created by jim on 1/17/16.
  */
-public class allOf_ {
+public enum allOf_ {
+    ;
+
     /**
      * bbcursive.lib.allOf_ of, in sequence, without failures
      *
