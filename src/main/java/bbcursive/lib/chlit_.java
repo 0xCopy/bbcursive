@@ -38,7 +38,7 @@ public class chlit_ {
                 return null;
             }
             if (buf.hasRemaining()) {
-                byte b = ((ByteBuffer) buf.mark()).get();
+                byte b = buf.get();
                 return (c & 0xff) == (b & 0xff) ? buf : null;
             }
             return null;

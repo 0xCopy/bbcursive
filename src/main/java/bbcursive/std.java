@@ -97,7 +97,7 @@ public class std {
             restoration = induct(op.getClass());
             if (flags.get().contains(traits.skipWs) && b.hasRemaining()) {
                 if (null == skipWs.apply(b)) {
-                    b.reset();
+                    b.position(startPosition);
                 }
                 ;
             }
@@ -118,8 +118,9 @@ public class std {
                     System.err.println("--- " + deepToString(new Integer[]{startPosition, b.position()}) + " " + op.toString());
                 r = (ByteBuffer) b.position(startPosition);
 
-            } else if (null != outbox.get())
+            } else if (null != outbox.get()) {
                 onSuccess(b, op, startPosition);
+            }
 
         }
         if (restoration != null)
@@ -132,6 +133,10 @@ public class std {
         Set<traits> immutableTraits = copyOf(flags.get());
         int finalStartPosition = startPosition;
         int endPos = b.position();
+
+        /**
+         * creates a slice.  probably a bad idea due to array() b000gz
+         */
         outbox.get().accept(new _edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>() {
             @Override
             protected _ptr at() {
@@ -143,9 +148,20 @@ public class std {
                 throw new Error("trifling with an immutable pointer");
             }
 
+
+            /**
+             * this binds a pointer to a pair of ByteBuffer and Integer.  note the bytebuffer is mutated by this
+             * operation and will corrupt the source stream if this isn't a slice or a duplicate
+             *
+             *
+             * @return the _ptr
+             */
             @Override
+
             protected _ptr r$() {
-                return (_ptr) new _ptr().bind(b, finalStartPosition);
+
+                return (_ptr) new _ptr().bind(
+                        (ByteBuffer) b.duplicate().limit(endPos),finalStartPosition);
             }
 
             @Override

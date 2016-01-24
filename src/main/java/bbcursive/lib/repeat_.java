@@ -7,6 +7,8 @@ import org.jetbrains.annotations.NotNull;
 import java.nio.ByteBuffer;
 import java.util.function.UnaryOperator;
 
+import static bbcursive.std.bb;
+
 /**
  * Created by jim on 1/17/16.
  */
@@ -41,7 +43,8 @@ public enum repeat_ {
             ByteBuffer last = null;
             while (handle.hasRemaining()) {
                 last = handle;
-                if (null != (handle=op.apply(handle))) {
+//                if (null != (handle=op.apply(handle))) {
+                if (null != (handle=bb(last,op))){
                     matches++;
                     mark = handle.position();
                 }else break;
