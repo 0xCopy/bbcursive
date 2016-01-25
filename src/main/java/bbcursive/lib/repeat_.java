@@ -1,10 +1,9 @@
 package bbcursive.lib;
 
-import bbcursive.ann.Backtracking;
-import bbcursive.ann.Skipper;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.function.UnaryOperator;
 
 import static bbcursive.std.bb;
@@ -16,46 +15,37 @@ public enum repeat_ {
     ;
 
     @NotNull
-    public static UnaryOperator<ByteBuffer> repeat(UnaryOperator<ByteBuffer> op) {
+    public static UnaryOperator<ByteBuffer> repeat(UnaryOperator<ByteBuffer>... op) {
+         return new UnaryOperator<ByteBuffer>() {
 
-        return new repeater(op);
-    }
 
-    @Skipper
-    @Backtracking
-    private static class repeater implements UnaryOperator<ByteBuffer> {
-        private final UnaryOperator<ByteBuffer> op;
-
-        repeater(UnaryOperator<ByteBuffer> op) {
-            this.op = op;
-        }
-
-        @Override
-        public String toString() {
-            return "rep:[" + String.valueOf(op) + "]";
-        }
-
-        @Override
-        public ByteBuffer apply(ByteBuffer byteBuffer) {
-            int mark = byteBuffer.position();
-            int matches = 0;
-            ByteBuffer handle = byteBuffer;
-            ByteBuffer last = null;
-            while (handle.hasRemaining()) {
-                last = handle;
-//                if (null != (handle=op.apply(handle))) {
-                if (null != (handle=bb(last,op))){
-                    matches++;
-                    mark = handle.position();
-                }else break;
+            public String toString() {
+                return "rep:"+ Arrays.deepToString(op);
             }
 
-            if (matches > 0 && last.hasRemaining())
-                last.position(mark);
+            @Override
+            public ByteBuffer apply(ByteBuffer byteBuffer) {
+                int mark = byteBuffer.position();
+                int matches = 0;
+                ByteBuffer handle = byteBuffer;
+                ByteBuffer last = null;
+                while (handle.hasRemaining()) {
+                    last = handle;
+    //                if (null != (handle=op.apply(handle))) {
+                    if (null != (handle=bb(last,op))){
+                        matches++;
+                        mark = handle.position();
+                    }else break;
+                }
 
-            return matches > 0 ? last: null;
-        }
+                if (matches > 0 && last.hasRemaining())
+                    last.position(mark);
+
+                return matches > 0 ? last: null;
+            }
+        };
     }
+
 }
 
 

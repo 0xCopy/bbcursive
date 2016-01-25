@@ -24,5 +24,4 @@ public class opt_Test {
         aa = bb("aba", allOf(chlit('a'), opt(chlit('a')), opt(chlit('b')), opt(chlit('z')), chlit('a'), opt(chlit('a'))));
         assertNotNull(aa);
     }
-
 }
