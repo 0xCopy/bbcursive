@@ -28,7 +28,19 @@ public class confix_ {
         };
     }
  public    static UnaryOperator<ByteBuffer> confix(UnaryOperator<ByteBuffer> before, UnaryOperator<ByteBuffer> after, UnaryOperator<ByteBuffer> operator) {
-        return new trident(before, operator, after);
+
+     return new UnaryOperator<ByteBuffer>() {
+
+         @Override
+         public String toString() {
+             return "confix"+Arrays.deepToString(new UnaryOperator[]{before, operator, after});
+         }
+
+         @Override
+         public ByteBuffer apply(ByteBuffer buffer) {
+             return bb(buffer,allOf(before, operator, after));
+         }
+     };
     }
 
     public static UnaryOperator<ByteBuffer> confix(char open, UnaryOperator<ByteBuffer> unaryOperator, char close) {
@@ -39,27 +51,5 @@ public class confix_ {
         return confix(unaryOperator, s.toCharArray());
     }
 
-    private static class trident implements UnaryOperator<ByteBuffer> {
-        private final UnaryOperator<ByteBuffer> before;
-        private final UnaryOperator<ByteBuffer> operator;
-        private final UnaryOperator<ByteBuffer> after;
-
-        public trident(UnaryOperator<ByteBuffer> before, UnaryOperator<ByteBuffer> operator, UnaryOperator<ByteBuffer> after) {
-            this.before = before;
-            this.operator = operator;
-            this.after = after;
-        }
-
-        @Override
-        public String toString() {
-            UnaryOperator[] a = {before, operator, after};
-            return "confix"+Arrays.deepToString(a);
-        }
-
-        @Override
-        public ByteBuffer apply(ByteBuffer buffer) {
-            return bb(buffer,allOf(before, operator, after));
-        }
-    }
 }
 ;

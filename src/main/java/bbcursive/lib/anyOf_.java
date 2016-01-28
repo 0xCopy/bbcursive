@@ -32,8 +32,8 @@ public class anyOf_ {
 
     @Backtracking
     public static UnaryOperator<ByteBuffer> anyOf(CharSequence s) {
-        int[] ints = s.chars().sorted().toArray();
-        final int[] ints1 = ints;
+        final int[] ints = s.chars().sorted().toArray();
+
         return new UnaryOperator<ByteBuffer>() {
 
 
@@ -47,7 +47,7 @@ public class anyOf_ {
 
             @Override
             public ByteBuffer apply(ByteBuffer b) {
-                if (b != null && b.hasRemaining()) {
+                if (null != b && b.hasRemaining()) {
                     byte b1 = b.get();
                     return -1 >= binarySearch(ints, b1 & 0xff) ? null : b;
                 }

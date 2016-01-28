@@ -20,6 +20,7 @@ import static bbcursive.Cursive.pre.skipWs;
 import static java.lang.Character.isDigit;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Arrays.copyOfRange;
 import static java.util.Arrays.deepToString;
 import static java.util.EnumSet.copyOf;
 import static java.util.EnumSet.noneOf;
@@ -91,53 +92,64 @@ public class std {
         ByteBuffer r = null;
         UnaryOperator<ByteBuffer> op = null;
         Set<traits> restoration = null;
-        if (null != b && 0 < ops.length && null != (op = ops[0])) {
-            if (debug_bbcursive) System.err.println("??? " + ops[0]);
-            int startPosition = b.position();
-            restoration = induct(op.getClass());
-            if (flags.get().contains(traits.skipWs) && b.hasRemaining()) {
-                if (null == skipWs.apply(b)) {
-                    b.position(startPosition);
+        if (null != b) {
+            if (0 < ops.length) if (null != (op = ops[0])) {
+                if (debug_bbcursive) System.err.println("??? " + ops[0]);
+                int startPosition = b.position();
+                restoration = induct(op.getClass());
+                if (flags.get().contains(traits.skipWs)) {
+                    if (b.hasRemaining()) {
+                        if (null == skipWs.apply(b)) b.position(startPosition);
+                    }
                 }
-                ;
-            }
-            switch (ops.length) {
-                case 0:
-                    r = b;
-                    break;
-                case 1:
-                    r = op.apply(b);
-                    break;
-                default:
-                    r = bb(op.apply(b), Arrays.copyOfRange(ops, 1, ops.length));
-                    break;
-            }
+                switch (ops.length) {
+                    case 0:
+                        r = b;
+                        break;
+                    case 1:
+                        r = op.apply(b);
+                        break;
+                    case 2:
+                        r = bb(bb(b, op), ops[1]);
+                        break;
+                    case 3:
+                        r = bb(bb(bb(b, op), ops[1]), ops[2]);
+                        break;
+                    case 4:
+                        r = bb(bb(bb(bb(b, op), ops[1]), ops[2]), ops[3]);
+                        break;
+                    case 5:
+                        r = bb(bb(bb(bb(bb(b, op), ops[1]), ops[2]), ops[3]), ops[4]);
+                        break;
+                    default:
+                        r = bb(bb(b, op), copyOfRange(ops, 1, ops.length));
+                        break;
+                }
 
-            if (null == r && flags.get().contains(traits.backtrackOnNull)) {
-                if (debug_bbcursive)
-                    System.err.println("--- " + deepToString(new Integer[]{startPosition, b.position()}) + " " + op.toString());
-                r = (ByteBuffer) b.position(startPosition);
+                if (null == r && flags.get().contains(traits.backtrackOnNull)) {
+                    if (debug_bbcursive)
+                        System.err.println("--- " + deepToString(new Integer[]{startPosition, b.position()}) + " " + op.toString());
+                    r = (ByteBuffer) b.position(startPosition);
 
-            } else if (null != outbox.get()) {
-                onSuccess(b, op, startPosition);
+                } else if (null != outbox.get()) {
+                    onSuccess(b, op, startPosition);
+                }
+
             }
-
         }
         if (restoration != null)
             flags.set(restoration);
         return r;
     }
 
-    static void onSuccess(final ByteBuffer b, UnaryOperator<ByteBuffer> byteBufferUnaryOperator, int startPosition) {
-        UnaryOperator<ByteBuffer> finalOp = byteBufferUnaryOperator;
-        Set<traits> immutableTraits = copyOf(flags.get());
-        int finalStartPosition = startPosition;
+    static void onSuccess(ByteBuffer b, UnaryOperator<ByteBuffer> byteBufferUnaryOperator, int startPosition) {
         int endPos = b.position();
+        Set<traits> immutableTraits = copyOf(flags.get());
 
         /**
          * creates a slice.  probably a bad idea due to array() b000gz
          */
-        outbox.get().accept(new _edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>() {
+        std.outbox.get().accept(new _edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>() {
             @Override
             protected _ptr at() {
                 return r$();
@@ -147,7 +159,6 @@ public class std {
             protected _ptr goTo(_ptr ptr) {
                 throw new Error("trifling with an immutable pointer");
             }
-
 
             /**
              * this binds a pointer to a pair of ByteBuffer and Integer.  note the bytebuffer is mutated by this
@@ -161,7 +172,7 @@ public class std {
             protected _ptr r$() {
 
                 return (_ptr) new _ptr().bind(
-                        (ByteBuffer) b.duplicate().limit(endPos),finalStartPosition);
+                        (ByteBuffer) b.duplicate().limit(endPos), startPosition);
             }
 
             @Override
@@ -197,7 +208,7 @@ public class std {
 
                             @Override
                             public UnaryOperator<ByteBuffer> core(_edge<UnaryOperator<ByteBuffer>, Integer>... e) {
-                                return finalOp;
+                                return byteBufferUnaryOperator;
                             }
 
                             @Override
