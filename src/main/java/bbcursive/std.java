@@ -7,6 +7,7 @@ import com.databricks.fastbuffer.ByteBufferReader;
 import com.databricks.fastbuffer.JavaByteBufferReader;
 import com.databricks.fastbuffer.UnsafeDirectByteBufferReader;
 import com.databricks.fastbuffer.UnsafeHeapByteBufferReader;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -46,7 +47,7 @@ public class std {
      * Integer -- length, to save time moving and scoring the artifact
      * _ptr -- _edge[ByteBuffer,Integer] state pair
      */
-    private static ThreadLocal<Consumer<_edge<_edge<Set<traits>,
+    public static ThreadLocal<Consumer<_edge<_edge<Set<traits>,
             _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>>>
             outbox = ThreadLocal.withInitial(() -> new Consumer<_edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>>() {
         @Override
@@ -141,7 +142,7 @@ public class std {
             flags.set(restoration);
         return r;
     }
-
+public
     static void onSuccess(ByteBuffer b, UnaryOperator<ByteBuffer> byteBufferUnaryOperator, int startPosition) {
         int endPos = b.position();
         Set<traits> immutableTraits = copyOf(flags.get());
@@ -149,7 +150,12 @@ public class std {
         /**
          * creates a slice.  probably a bad idea due to array() b000gz
          */
-        std.outbox.get().accept(new _edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>() {
+        std.outbox.get().accept(createSuccessTuple(b, byteBufferUnaryOperator, startPosition, endPos, immutableTraits));
+    }
+
+    @NotNull
+    public static _edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr> createSuccessTuple(final ByteBuffer b, final UnaryOperator<ByteBuffer> byteBufferUnaryOperator, final int startPosition, final int endPos, final Set<traits> immutableTraits) {
+        return new _edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>() {
             @Override
             protected _ptr at() {
                 return r$();
@@ -179,7 +185,7 @@ public class std {
             public _edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>> core(_edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>... e) {
                 return new _edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>() {
                     @Override
-                    public Set<traits> core(_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>... e) {
+                    public Set<traits> core(_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>...e) {
                         return immutableTraits;
                     }
 
@@ -219,7 +225,7 @@ public class std {
                     }
                 };
             }
-        });
+        };
     }
 
 
