@@ -167,7 +167,7 @@ public class anyOf_ {
             public ByteBuffer apply(ByteBuffer b) {
                 if (null != b && b.hasRemaining()) {
                     byte b1 = b.get();
-                    return -1 >= binarySearch(ints, b1 & 0xff) ? null : b;
+                    if (-1 < binarySearch(ints, b1 & 0xff)) return b;
                 }
                 return null;
             }
