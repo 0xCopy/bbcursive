@@ -21,12 +21,8 @@ return new
 
             @Override
             public ByteBuffer apply(ByteBuffer buffer) {
-
                 std.flags.get().remove(skipWs);
-
                 return std.bb(buffer,allOf);
-
-
             }
         };
 

@@ -29,17 +29,19 @@ public class log {
      * @param prefixSuffix
      * @return
      */
-    public static boolean log$(Object ob, String... prefixSuffix) {
+    public static boolean log$(Object ob, String...prefixSuffix) {
         boolean hasSuffix = 1 < prefixSuffix.length;
         if (0 < prefixSuffix.length)
             System.err.print(prefixSuffix[0] + "\t");
-        if (ob instanceof ByteBuffer) {
-            std.bb((ByteBuffer) ob, debug);
-        } else if (ob instanceof WantsZeroCopy) {
-            WantsZeroCopy wantsZeroCopy = (WantsZeroCopy) ob;
-            std.bb(wantsZeroCopy.asByteBuffer(), debug);
+        if (!(ob instanceof ByteBuffer)) {
+            if (ob instanceof WantsZeroCopy) {
+                WantsZeroCopy wantsZeroCopy = (WantsZeroCopy) ob;
+                std.bb(wantsZeroCopy.asByteBuffer(), debug);
+            } else {
+                std.bb(String.valueOf(ob), debug);
+            }
         } else {
-            std.bb(String.valueOf(ob), debug);
+            std.bb((ByteBuffer) ob, debug);
         }
         if (hasSuffix) {
             System.err.println(prefixSuffix[1] + "\t");

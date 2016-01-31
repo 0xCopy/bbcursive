@@ -57,7 +57,6 @@ public class std {
             _edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr> edge_ptr_edge1 = edge_ptr_edge;
             _ptr location = edge_ptr_edge1.location();
             Integer startPosition = location.location();
-            ByteBuffer byteBuffer = location.core();
             _edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>> set_edge_edge = edge_ptr_edge1.core();
             Set<traits> traitsSet = set_edge_edge.core();
             _edge<UnaryOperator<ByteBuffer>, Integer> operatorIntegerEdge = set_edge_edge.location();
@@ -91,52 +90,49 @@ public class std {
      */
     public static ByteBuffer bb(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
         ByteBuffer r = null;
-        UnaryOperator<ByteBuffer> op = null;
         Set<traits> restoration = null;
-        if (null != b) {
-            if (0 < ops.length) if (null != (op = ops[0])) {
-                if (debug_bbcursive) System.err.println("??? " + ops[0]);
-                int startPosition = b.position();
-                restoration = induct(op.getClass());
-                if (flags.get().contains(traits.skipWs)) {
-                    if (b.hasRemaining()) {
-                        if (null == skipWs.apply(b)) b.position(startPosition);
-                    }
-                }
-                switch (ops.length) {
-                    case 0:
-                        r = b;
-                        break;
-                    case 1:
-                        r = op.apply(b);
-                        break;
-                    case 2:
-                        r = bb(bb(b, op), ops[1]);
-                        break;
-                    case 3:
-                        r = bb(bb(bb(b, op), ops[1]), ops[2]);
-                        break;
-                    case 4:
-                        r = bb(bb(bb(bb(b, op), ops[1]), ops[2]), ops[3]);
-                        break;
-                    case 5:
-                        r = bb(bb(bb(bb(bb(b, op), ops[1]), ops[2]), ops[3]), ops[4]);
-                        break;
-                    default:
-                        r = bb(bb(b, op), copyOfRange(ops, 1, ops.length));
-                        break;
-                }
-
-                if (null == r && flags.get().contains(traits.backtrackOnNull)) {
-                    if (debug_bbcursive)
-                        System.err.println("--- " + deepToString(new Integer[]{startPosition, b.position()}) + " " + op.toString());
-                    r = (ByteBuffer) b.position(startPosition);
-
-                } else if (null != outbox.get()) {
-                    onSuccess(b, op, startPosition);
-                }
-
+        if (null != b && 0 < ops.length && null != ops[0]) {
+            if (debug_bbcursive) System.err.println("??? " + ops[0]);
+            int startPosition = b.position();
+            restoration = induct(ops[0].getClass());
+            if (flags.get().contains(traits.skipWs) && b.hasRemaining() && null == skipWs.apply(b))
+                b.position(startPosition);
+            switch (ops.length) {
+                case 0:
+                    r = b;
+                    break;
+                case 1:
+                    r = ops[0].apply(b);
+                    break;
+                case 2:
+                    r = bb(bb(b, ops[0]), ops[1]);
+                    break;
+                case 3:
+                    r = bb(bb(bb(b, ops[0]), ops[1]), ops[2]);
+                    break;
+                case 4:
+                    r = bb(bb(bb(bb(b, ops[0]), ops[1]), ops[2]), ops[3]);
+                    break;
+                case 5:
+                    r = bb(bb(bb(bb(bb(b, ops[0]), ops[1]), ops[2]), ops[3]), ops[4]);
+                    break;
+                case 6:
+                    r = bb(bb(bb(bb(bb(bb(b, ops[0]), ops[1]), ops[2]), ops[3]), ops[4]), ops[5]);
+                    break;
+                default:
+                    r = bb(bb(bb(bb(bb(bb(b, ops[0]), ops[1]), ops[2]), ops[3]), ops[4]), copyOfRange(ops, 5, ops.length));
+                    break;
             }
+
+            if (null == r && flags.get().contains(traits.backtrackOnNull)) {
+                if (debug_bbcursive)
+                    System.err.println("--- " + deepToString(new Integer[]{startPosition, b.position()}) + " " + String.valueOf(ops[0]));
+                r = (ByteBuffer) b.position(startPosition);
+
+            } else if (null != outbox.get()) {
+                onSuccess(b, ops[0], startPosition);
+            }
+
         }
         if (restoration != null)
             flags.set(restoration);

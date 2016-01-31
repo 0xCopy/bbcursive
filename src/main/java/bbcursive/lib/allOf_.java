@@ -23,7 +23,7 @@ public enum allOf_ {
         return new UnaryOperator<ByteBuffer>() {
             @Override
             public String toString() {
-                return "all:"+ deepToString(allOf);
+                return "all"+ deepToString(allOf);
             }
 
             @Override
