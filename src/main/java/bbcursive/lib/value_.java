@@ -6,7 +6,6 @@ import bbcursive.ann.Infix;
 import java.nio.ByteBuffer;
 import java.util.function.UnaryOperator;
 
-import static bbcursive.lib.anyOf_.anyOf;
 import static bbcursive.lib.chlit_.chlit;
 import static bbcursive.lib.infix_.infix;
 import static bbcursive.lib.opt_.opt;
@@ -30,6 +29,6 @@ public class value_ implements UnaryOperator<ByteBuffer> {
 
     @Override
     public ByteBuffer apply(ByteBuffer buffer) {
-        return (ByteBuffer) infix(opt(chlit("0")), anyOf("1.0"), opt(repeat(anyOf("1029384756"))));
+        return (ByteBuffer) infix(opt(chlit("0")), anyOf_.anyIn("1.0"), opt(repeat(anyOf_.anyIn("1029384756"))));
     }
 }

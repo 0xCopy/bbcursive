@@ -1,5 +1,9 @@
 package bbcursive;
 
+import bbcursive.ann.Backtracking;
+import bbcursive.ann.ForwardOnly;
+import bbcursive.ann.Infix;
+import bbcursive.ann.Skipper;
 import bbcursive.lib.u8tf;
 import bbcursive.vtables._edge;
 import bbcursive.vtables._ptr;
@@ -10,15 +14,19 @@ import com.databricks.fastbuffer.UnsafeHeapByteBufferReader;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
-import static bbcursive.Cursive.pre.skipWs;
 import static java.lang.Character.isDigit;
+import static java.lang.Character.isWhitespace;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.copyOfRange;
@@ -33,7 +41,7 @@ import static java.util.EnumSet.noneOf;
 public class std {
 
 
-    final private static boolean debug_bbcursive = Objects.equals("true", System.getenv("debug_bbcursive"));
+    final private static boolean debug_bbcursive = true;// Objects.equals("true", System.getenv("debug_bbcursive"));
     private static Allocator allocator;
 
     /**
@@ -73,7 +81,7 @@ public class std {
      * parameters and returns to fire events and clean up using {@link ThreadLocal#set(Object)}
      */
     public enum traits {
-        debug, backtrackOnNull, skipWs;
+        debug, backtracking, skipper;
 
     }
 
@@ -91,46 +99,56 @@ public class std {
     public static ByteBuffer bb(ByteBuffer b, UnaryOperator<ByteBuffer>... ops) {
         ByteBuffer r = null;
         Set<traits> restoration = null;
-        if (null != b && 0 < ops.length && null != ops[0]) {
-            if (debug_bbcursive) System.err.println("??? " + ops[0]);
+        UnaryOperator<ByteBuffer> op = null;
+        if (null != b && 0 < ops.length && null != (op = ops[0])) {
+            ;
+            if (debug_bbcursive) System.err.println("??? " + op);
             int startPosition = b.position();
-            restoration = induct(ops[0].getClass());
-            if (flags.get().contains(traits.skipWs) && b.hasRemaining() && null == skipWs.apply(b))
-                b.position(startPosition);
+
+            if (flags.get().contains(traits.skipper)) {
+                boolean rem=false;
+                while ((rem = b.hasRemaining()) && isWhitespace(((ByteBuffer) b.mark()).get() & 0xff));
+                if (rem) {
+                    b.reset();
+                }
+            }
+            restoration = induct(op.getClass());
             switch (ops.length) {
                 case 0:
                     r = b;
                     break;
                 case 1:
-                    r = ops[0].apply(b);
+                    r = op.apply(b);
                     break;
+/*
                 case 2:
-                    r = bb(bb(b, ops[0]), ops[1]);
+                    r = bb(bb(b, op), ops[1]);
                     break;
                 case 3:
-                    r = bb(bb(bb(b, ops[0]), ops[1]), ops[2]);
+                    r = bb(bb(bb(b, op), ops[1]), ops[2]);
                     break;
                 case 4:
-                    r = bb(bb(bb(bb(b, ops[0]), ops[1]), ops[2]), ops[3]);
+                    r = bb(bb(bb(bb(b, op), ops[1]), ops[2]), ops[3]);
                     break;
                 case 5:
-                    r = bb(bb(bb(bb(bb(b, ops[0]), ops[1]), ops[2]), ops[3]), ops[4]);
+                    r = bb(bb(bb(bb(bb(b, op), ops[1]), ops[2]), ops[3]), ops[4]);
                     break;
                 case 6:
-                    r = bb(bb(bb(bb(bb(bb(b, ops[0]), ops[1]), ops[2]), ops[3]), ops[4]), ops[5]);
+                    r = bb(bb(bb(bb(bb(bb(b, op), ops[1]), ops[2]), ops[3]), ops[4]), ops[5]);
                     break;
+*/
                 default:
-                    r = bb(bb(bb(bb(bb(bb(b, ops[0]), ops[1]), ops[2]), ops[3]), ops[4]), copyOfRange(ops, 5, ops.length));
+                    r = /*bb(bb(bb(bb(*/bb(bb(b, op), copyOfRange(ops, 1, ops.length));
                     break;
             }
 
-            if (null == r && flags.get().contains(traits.backtrackOnNull)) {
+            if (null == r && flags.get().contains(traits.backtracking)) {
                 if (debug_bbcursive)
-                    System.err.println("--- " + deepToString(new Integer[]{startPosition, b.position()}) + " " + String.valueOf(ops[0]));
+                    System.err.println("--- " + deepToString(new Integer[]{startPosition, b.position()}) + " " + String.valueOf(op));
                 r = (ByteBuffer) b.position(startPosition);
 
             } else if (null != outbox.get()) {
-                onSuccess(b, ops[0], startPosition);
+                onSuccess(b, op, startPosition);
             }
 
         }
@@ -138,7 +156,8 @@ public class std {
             flags.set(restoration);
         return r;
     }
-public
+
+    public
     static void onSuccess(ByteBuffer b, UnaryOperator<ByteBuffer> byteBufferUnaryOperator, int startPosition) {
         int endPos = b.position();
         Set<traits> immutableTraits = copyOf(flags.get());
@@ -181,7 +200,7 @@ public
             public _edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>> core(_edge<_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>, _ptr>... e) {
                 return new _edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>() {
                     @Override
-                    public Set<traits> core(_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>...e) {
+                    public Set<traits> core(_edge<Set<traits>, _edge<UnaryOperator<ByteBuffer>, Integer>>... e) {
                         return immutableTraits;
                     }
 
@@ -236,31 +255,24 @@ public
      * @return the previous (restoration) state
      */
     static Set<traits> induct(Class<? extends UnaryOperator> aClass) {
-        return null;
-/*
         Set<traits> c = flags.get();
         Set<traits> traitses = copyOf(c);
         AtomicBoolean dirty = new AtomicBoolean(false);
         if (aClass.isAnnotationPresent(Skipper.class)) {
             dirty.set(true);
-            c.add(traits.skipWs);
-        }else
-        if (aClass.isAnnotationPresent(Infix.class)) {
+            c.add(traits.skipper);
+        } else if (aClass.isAnnotationPresent(Infix.class)) {
             dirty.set(true);
-            c.remove(traits.skipWs);
+            c.remove(traits.skipper);
         }
         if (aClass.isAnnotationPresent(Backtracking.class)) {
             dirty.set(true);
-            c.add(traits.backtrackOnNull);
-        }else
-        if (aClass.isAnnotationPresent(ForwardOnly.class)) {
+            c.add(traits.backtracking);
+        } else if (aClass.isAnnotationPresent(ForwardOnly.class)) {
             dirty.set(true);
-            c.remove(traits.backtrackOnNull);
+            c.remove(traits.backtracking);
         }
-
-
-
-        return !dirty.get() ? null : traitses;*/
+        return !dirty.get() ? null : traitses;
     }
 
 

@@ -25,7 +25,7 @@ public class anyOf_ {
 
     public static final EnumSet<traits> NONE_OF = EnumSet.noneOf(traits.class);
 
-    public static UnaryOperator<ByteBuffer> anyOf(UnaryOperator<ByteBuffer>... anyOf) {
+    public static UnaryOperator<ByteBuffer> anyIn(UnaryOperator<ByteBuffer>... anyOf) {
 
 
         return new UnaryOperator<ByteBuffer>() {
@@ -38,7 +38,7 @@ public class anyOf_ {
             @Override
             public ByteBuffer apply(ByteBuffer buffer) {
                 int mark = buffer.position();
-                if (flags.get().contains(traits.skipWs)) {
+                if (flags.get().contains(traits.skipper)) {
                     ByteBuffer apply = Cursive.pre.skipWs.apply(buffer);
                     buffer = apply == null ? (ByteBuffer) buffer.position(mark) : apply;
                     if (!buffer.hasRemaining()) {
@@ -50,7 +50,7 @@ public class anyOf_ {
                 Set[] flaggs = {NONE_OF};
 
 
-                ByteBuffer[] r = new ByteBuffer[1];
+                ByteBuffer[] r = {null};
                 final ByteBuffer[] finalBuffer = {buffer};
 
                 Arrays.stream(anyOf)/*.parallel()*/
@@ -155,14 +155,14 @@ public class anyOf_ {
 
 
     @Backtracking
-    public static UnaryOperator<ByteBuffer> anyOf(CharSequence s) {
+    public static UnaryOperator<ByteBuffer> anyIn(CharSequence s) {
         int[] ints = s.chars().sorted().toArray();
         return new UnaryOperator<ByteBuffer>() {
             @Override
             public String toString() {
-                StringBuilder any = new StringBuilder('[');
-                IntStream.of(ints).forEach(i -> any.append((char) (i & 0xffff)));
-                return String.valueOf(any.append(']'));
+                StringBuilder b=new StringBuilder();
+                IntStream.of(ints).forEach(i -> b.append((char) (i & 0xffff)));
+                return "in"+Arrays.deepToString(new String[]{b.toString()});
             }
 
             @Override

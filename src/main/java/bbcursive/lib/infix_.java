@@ -7,24 +7,30 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.function.UnaryOperator;
 
-import static bbcursive.std.traits.skipWs;
-
-public enum infix_ {;
+public interface infix_ {;
 @Infix
     public static UnaryOperator<ByteBuffer> infix(UnaryOperator<ByteBuffer>... allOf) {
-return new
-        UnaryOperator<ByteBuffer>() {
-            @Override
-            public String toString() {
-                return "infix"+ Arrays.deepToString(allOf);
-            }
+    return new ByteBufferUnaryOperator(allOf);
 
-            @Override
-            public ByteBuffer apply(ByteBuffer buffer) {
-                std.flags.get().remove(skipWs);
-                return std.bb(buffer,allOf);
-            }
-        };
+}
 
+    @Infix
+class ByteBufferUnaryOperator implements UnaryOperator<ByteBuffer> {
+        private final UnaryOperator<ByteBuffer>[] allOf;
+
+        public ByteBufferUnaryOperator(UnaryOperator<ByteBuffer>... allOf) {
+            this.allOf = allOf;
+        }
+
+        @Override
+        public String toString() {
+            return "infix"+ Arrays.deepToString(allOf);
+        }
+
+        @Override
+        public ByteBuffer apply(ByteBuffer buffer) {
+
+            return std.bb(buffer, allOf);
+        }
     }
 }

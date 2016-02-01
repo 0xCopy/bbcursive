@@ -26,10 +26,10 @@ public class repeat_Test {
         assertNotNull(aaa);
         aaa = std.bb("baa", repeat_.repeat(chlit('a')));
         assertNull(aaa);
-        std.flags.get().add(std.traits.skipWs);
+        std.flags.get().add(std.traits.skipper);
         aaa = std.bb("a a a", repeat_.repeat(chlit('a')));
         assertNotNull(aaa);
-        std.flags.get().remove(std.traits.skipWs);
+        std.flags.get().remove(std.traits.skipper);
         aaa = std.bb(" a a a", repeat_.repeat(chlit('a')));
         assertNull(aaa);
 
