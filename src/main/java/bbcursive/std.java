@@ -108,9 +108,7 @@ public class std {
             if (flags.get().contains(traits.skipper)) {
                 boolean rem=false;
                 while ((rem = b.hasRemaining()) && isWhitespace(((ByteBuffer) b.mark()).get() & 0xff));
-                if (rem) {
-                    b.reset();
-                }
+                if (rem) b.reset();
             }
             restoration = induct(op.getClass());
             switch (ops.length) {
@@ -120,7 +118,8 @@ public class std {
                 case 1:
                     r = op.apply(b);
                     break;
-/*
+
+/*save
                 case 2:
                     r = bb(bb(b, op), ops[1]);
                     break;
@@ -137,6 +136,7 @@ public class std {
                     r = bb(bb(bb(bb(bb(bb(b, op), ops[1]), ops[2]), ops[3]), ops[4]), ops[5]);
                     break;
 */
+
                 default:
                     r = /*bb(bb(bb(bb(*/bb(bb(b, op), copyOfRange(ops, 1, ops.length));
                     break;

@@ -10,7 +10,7 @@ import static java.util.Arrays.deepToString;
 /**
  * Created by jim on 1/17/16.
  */
-public enum allOf_ {
+public interface  allOf_ {
     ;
 
     /**
@@ -19,7 +19,7 @@ public enum allOf_ {
      * @param allOf
      * @return null if not bbcursive.lib.allOf_ match in sequence
      */
-    public static UnaryOperator<ByteBuffer> allOf(UnaryOperator<ByteBuffer>... allOf) {
+    static UnaryOperator<ByteBuffer> allOf(UnaryOperator<ByteBuffer>... allOf) {
         return new UnaryOperator<ByteBuffer>() {
             @Override
             public String toString() {
@@ -28,7 +28,7 @@ public enum allOf_ {
 
             @Override
             public ByteBuffer apply(ByteBuffer target) {
-                return null == target ? null : std.bb(target, allOf);
+                return   std.bb(target, allOf);
             }
         };
     }

@@ -1,6 +1,6 @@
 package bbcursive.lib;
 
-import bbcursive.Cursive;
+import bbcursive.Cursive.pre;
 import bbcursive.ann.Backtracking;
 import bbcursive.vtables._edge;
 import bbcursive.vtables._ptr;
@@ -25,7 +25,7 @@ public class anyOf_ {
 
     public static final EnumSet<traits> NONE_OF = EnumSet.noneOf(traits.class);
 
-    public static UnaryOperator<ByteBuffer> anyIn(UnaryOperator<ByteBuffer>... anyOf) {
+    public static UnaryOperator<ByteBuffer> anyOf(UnaryOperator<ByteBuffer>... anyOf) {
 
 
         return new UnaryOperator<ByteBuffer>() {
@@ -39,7 +39,7 @@ public class anyOf_ {
             public ByteBuffer apply(ByteBuffer buffer) {
                 int mark = buffer.position();
                 if (flags.get().contains(traits.skipper)) {
-                    ByteBuffer apply = Cursive.pre.skipWs.apply(buffer);
+                    ByteBuffer apply = pre.skipWs.apply(buffer);
                     buffer = apply == null ? (ByteBuffer) buffer.position(mark) : apply;
                     if (!buffer.hasRemaining()) {
                         return null;
